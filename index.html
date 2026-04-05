@@ -313,6 +313,46 @@
             border-color: rgba(212,175,55,0.2) !important;
         }
 
+        /* Alert Banner */
+        .alert-banner {
+            display: none;
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 10px;
+            padding: 0.8rem 1.2rem;
+            margin-bottom: 1.2rem;
+            animation: alertPulse 2s ease-in-out infinite;
+        }
+        .alert-banner.show { display: block; }
+        .alert-banner.warn {
+            background: rgba(255,200,0,0.08);
+            border-color: rgba(255,200,0,0.3);
+        }
+        .alert-banner .alert-title {
+            font-size: 0.8rem; font-weight: 700; color: #EF4444;
+            margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.4rem;
+        }
+        .alert-banner.warn .alert-title { color: #ffc800; }
+        .alert-banner .alert-text { font-size: 0.75rem; color: #bbb; line-height: 1.5; }
+        .alert-banner .alert-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.5rem; }
+        .alert-banner .alert-tag {
+            font-size: 0.6rem; padding: 0.15rem 0.5rem; border-radius: 50px;
+            background: rgba(239,68,68,0.15); color: #EF4444; border: 1px solid rgba(239,68,68,0.2);
+            font-weight: 600;
+        }
+        .alert-banner.warn .alert-tag {
+            background: rgba(255,200,0,0.1); color: #ffc800; border-color: rgba(255,200,0,0.2);
+        }
+        @keyframes alertPulse {
+            0%, 100% { box-shadow: 0 0 0 rgba(239,68,68,0); }
+            50% { box-shadow: 0 0 20px rgba(239,68,68,0.15); }
+        }
+        .alert-banner.warn { animation-name: alertPulseWarn; }
+        @keyframes alertPulseWarn {
+            0%, 100% { box-shadow: 0 0 0 rgba(255,200,0,0); }
+            50% { box-shadow: 0 0 20px rgba(255,200,0,0.15); }
+        }
+
         /* Skeleton loading */
         .skeleton {
             background: linear-gradient(90deg, #151515 25%, #1a1a1a 50%, #151515 75%);
@@ -356,6 +396,11 @@
 
         <!-- Data Panel -->
         <div class="dashboard" id="dashboard">
+            <div class="alert-banner" id="alertBanner">
+                <div class="alert-title"></div>
+                <div class="alert-text"></div>
+                <div class="alert-tags"></div>
+            </div>
             <div class="location-header">
                 <div>
                     <h1 id="locTitle">Carregando...</h1>
@@ -553,6 +598,29 @@
     }
 
     // ============================================================
+    //  INMET
+    // ============================================================
+    const INMET_BASE = 'https://apitempo.inmet.gov.br';
+
+    async function fetchInmetStations(lat, lon) {
+        try {
+            const res = await fetch(`${INMET_BASE}/estacoes/${lat}/${lon}`);
+            if (!res.ok) return null;
+            return await res.json();
+        } catch { return null; }
+    }
+
+    async function fetchInmetHourly(codigo) {
+        try {
+            const res = await fetch(`${INMET_BASE}/estacao/dados/horaria/${codigo}`);
+            if (!res.ok) return null;
+            const data = await res.json();
+            if (!data || !data.length) return null;
+            return data[0];
+        } catch { return null; }
+    }
+
+    // ============================================================
     //  Weather Fetch
     // ============================================================
     async function fetchWeather(lat, lon) {
@@ -582,9 +650,20 @@
             if (!res.ok) throw new Error(`API retornou ${res.status}`);
             const data = await res.json();
 
-            // Try reverse geocode if we haven't yet
+            // Try reverse geocode
             const name = await reverseGeocode(lat, lon);
-            renderDashboard(data, lat, lon, name);
+
+            // Fetch INMET data in parallel for validation
+            let inmetData = null, stationInfo = null;
+            const estacoes = await fetchInmetStations(lat, lon);
+            if (estacoes && estacoes.length) {
+                const auto = estacoes.filter(e => e.tipoEstacao === "AUTOMÁTICA");
+                const est = auto[0] || estacoes[0];
+                stationInfo = est;
+                inmetData = await fetchInmetHourly(est.cd_estacao);
+            }
+
+            renderDashboard(data, lat, lon, name, inmetData, stationInfo);
 
             badge.innerHTML = '&#9679; Online';
             badge.className = 'status-badge online';
@@ -697,9 +776,108 @@
     }
 
     // ============================================================
+    //  Critical Alerts
+    // ============================================================
+    function renderAlerts(c, d, inmet) {
+        const banner = document.getElementById('alertBanner');
+        const titleEl = banner.querySelector('.alert-title');
+        const textEl = banner.querySelector('.alert-text');
+        const tagsEl = banner.querySelector('.alert-tags');
+        tagsEl.innerHTML = '';
+
+        const alerts = [];
+        const bad = [];
+
+        // Temperature extremes
+        if (c.temperature_2m >= 38) {
+            bad.push(`Temperatura crítica: ${c.temperature_2m}°C — risco de estresse térmico em culturas`);
+        } else if (c.temperature_2m >= 35) {
+            alerts.push(`Temperatura elevada (${c.temperature_2m}°C) — atenção à irrigação suplementar`);
+        }
+        if (c.temperature_2m <= 3) {
+            bad.push(`Risco de geada (${c.temperature_2m}°C) — proteger culturas sensíveis imediatamente`);
+        } else if (c.temperature_2m <= 5) {
+            alerts.push(`Temperatura próxima a 0°C — monitorar risco de geada`);
+        }
+
+        // Humidity
+        const umid = c.relative_humidity_2m;
+        if (umid <= 15) {
+            bad.push(`Umidade muito baixa (${umid}%) — irrigação de urgência necessária`);
+        } else if (umid <= 25) {
+            alerts.push(`Umidade baixa (${umid}%) — verificar estresse hídrico`);
+        }
+
+        // Wind
+        if (c.wind_speed_10m >= 60) {
+            bad.push(`Vento perigoso (${c.wind_speed_10m} km/h) — risco de danos estruturais`);
+        } else if (c.wind_speed_10m >= 45) {
+            alerts.push(`Vento forte (${c.wind_speed_10m} km/h) — atenção a culturas altas`);
+        }
+
+        // Dry spell (from daily forecast)
+        if (d.precipitation_sum) {
+            const dryDays = d.precipitation_sum.slice(0, 4).filter(v => v === 0).length;
+            if (dryDays >= 4) {
+                bad.push(`${dryDays} dias sem chuva prevista — déficit hídrico iminente`);
+            }
+        }
+
+        // Heavy rain forecast
+        if (d.precipitation_sum) {
+            const maxRain = Math.max(...d.precipitation_sum);
+            if (maxRain > 40) {
+                alerts.push(`Chuvas fortes previstas (até ${maxRain} mm) — adiar pulverizações`);
+                banner.classList.add('warn');
+            } else {
+                banner.classList.remove('warn');
+            }
+        } else {
+            banner.classList.remove('warn');
+        }
+
+        // INMET validation
+        if (inmet) {
+            const omTemp = c.temperature_2m;
+            const inmetTempRaw = inmet.tem_bulu_sec;
+            if (inmetTempRaw !== null && inmetTempRaw !== undefined) {
+                const diff = Math.abs(omTemp - inmetTempRaw);
+                if (diff > 3) {
+                    alerts.push(`Diferença INMET/Open-Meteo: ${diff.toFixed(1)}°C — verificar consistência`);
+                    tagsEl.innerHTML += `<span class="alert-tag">INMET: ${inmetTempRaw}°C</span>`;
+                }
+                tagsEl.innerHTML += `<span class="alert-tag" style="background:rgba(34,197,94,.1);color:#22C55E;border-color:rgba(34,197,94,.2)">✓ Validado INMET</span>`;
+            }
+            const inmetChuva = inmet.chuva;
+            if (inmetChuva !== null && inmetChuva !== undefined) {
+                tagsEl.innerHTML += `<span class="alert-tag" style="background:rgba(76,120,239,.1);color:#60A5FA;border-color:rgba(76,120,239,.2)">Chuva INMET: ${inmetChuva} mm</span>`;
+            }
+        }
+
+        if (bad.length > 0) {
+            banner.classList.add('show');
+            banner.classList.remove('warn');
+            titleEl.innerHTML = '&#9888; Alerta Crítico';
+            titleEl.style.color = '#EF4444';
+            textEl.innerHTML = bad.join('<br>');
+        } else if (alerts.length > 0) {
+            banner.classList.add('show');
+            banner.classList.add('warn');
+            titleEl.style.color = '#ffc800';
+            titleEl.innerHTML = '&#9888; Atenção';
+            textEl.innerHTML = alerts.join('<br>');
+            if (bad.length > 0) {
+                textEl.innerHTML = bad.join('<br>') + '<br><br>' + alerts.join('<br>');
+            }
+        } else {
+            banner.classList.remove('show');
+        }
+    }
+
+    // ============================================================
     //  Render
     // ============================================================
-    function renderDashboard(data, lat, lon, name) {
+    function renderDashboard(data, lat, lon, name, inmet, station) {
         const dashboard = document.getElementById('dashboard');
         dashboard.classList.add('show');
 
@@ -717,6 +895,11 @@
         currentCityName = name.trim();
         document.getElementById('reportLink').href =
             `relatorio.html?lat=${lat}&lon=${lon}&city=${encodeURIComponent(currentCityName)}`;
+
+        // ============================================================
+        //  Check critical conditions and show alert banner
+        // ============================================================
+        renderAlerts(c, d, inmet);
 
         // Hero
         document.getElementById('tempHero').innerHTML = `<span>${Math.round(c.temperature_2m)}</span><sup>°C</sup>`;

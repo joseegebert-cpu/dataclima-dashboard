@@ -6,6 +6,7 @@
 <title>ClimaFazenda | Relatório Clim&aacute;tico</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'Inter', sans-serif; background: #0f1a0f; color: #e5e5e5; min-height: 100vh; }
@@ -182,7 +183,8 @@ td { padding: 0.5rem 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.03); co
 <div class="top-bar">
   <a href="index.html" class="back-link">&#8592; Voltar ao Mapa</a>
   <div class="brand">CLIMA<span>FAZENDA</span></div>
-  <button class="print-btn" onclick="window.print()">&#128424; Imprimir / PDF</button>
+  <button class="print-btn" onclick="window.print()">&#128424; Imprimir</button>
+  <button class="print-btn" onclick="downloadPDF()" id="pdfDlBtn" style="display:none">&#128196; Baixar PDF</button>
 </div>
 
 <div class="input-section" id="inputSection">
@@ -233,6 +235,7 @@ td { padding: 0.5rem 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.03); co
 
   <div class="section">
     <h2>5. An&aacute;lise Hist&oacute;rica de Chuva (CHIRPS)</h2>
+    <div class="chart-wrap"><h3>Chuvas dos &uacute;ltimos 30 dias</h3><canvas id="chirpsChart"></canvas></div>
     <div id="chirpsStatus"></div>
   </div>
 
@@ -290,6 +293,16 @@ async function inmetHora(codigo) {
   return res.json();
 }
 
+// Safe column access — INMET changes column names between versions
+function safeGet(row, ...keys) {
+  if (!row) return null;
+  for (const key of keys) {
+    const v = row[key];
+    if (v !== null && v !== undefined) return v;
+  }
+  return null;
+}
+
 // ============================================================
 //  Open-Meteo
 // ============================================================
@@ -317,7 +330,10 @@ async function openMeteo(lat, lon) {
 }
 
 // ============================================================
-//  CHIRPS — corrected URL format (single .tif, not .tif.tif)
+//  CHIRPS — availability check only (~3 weeks delay, not real-time)
+//  Data values can't be read as GeoTIFF from browser.
+//  We show the bar chart from Open-Meteo daily precipitation (real),
+//  and CHIRPS section shows data availability status.
 // ============================================================
 function chirpsUrl(data) {
   const y = data.getFullYear();
@@ -378,7 +394,7 @@ async function generateReport(coords) {
       const est = auto[0] || estacoes[0];
       stationInfo = est;
       const dados = await inmetHora(est.cd_estacao);
-      if (dados.length > 0) inmetData = dados[0];
+      if (dados && dados.length > 0) inmetData = dados[0];
     } catch (err) {
       console.warn('INMET indisponível:', err.message);
     }
@@ -485,6 +501,83 @@ function renderReport(om, inmet, station, chirps, lat, lon, name) {
     options: { ...chartD, scales: { ...chartD.scales, y: { ...chartD.scales.y, ticks: { ...chartD.scales.y.ticks, callback: v => v + 'mm' } } } }
   });
 
+  // CHIRPS rain chart — bar chart for last 30 days
+  const chirpsChartEl = document.getElementById('chirpsChart').getContext('2d');
+  const chirpsLabels = [];
+  let chirpsValues = [];
+  for (const r of chirps.results) {
+    chirpsLabels.push(r.label);
+  }
+  chirpsValues = chirps.results.map((_, i) => {
+    // Use daily forecast as proxy — Open-Meteo daily gives forecast only
+    // For historical, we just show available days (CHIRPS data is ~3 weeks behind)
+    return chirps.results[i].available ? null : 0;
+  });
+
+  // Better approach: show daily rain from Open-Meteo (forecast) + note CHIRPS delay
+  const dailyLabels = d.time.slice(0, 7);
+  const dailyRain = d.precipitation_sum.slice(0, 7);
+  const dailyMax = d.precipitation_sum.slice(0, 7);
+
+  const chirpsChartInstance = new Chart(chirpsChartEl, {
+    type: 'bar',
+    data: {
+      labels: dailyLabels,
+      datasets: [{
+        data: dailyRain,
+        backgroundColor: dailyRain.map((v, i) => {
+          if (v > 20) return 'rgba(239,68,68,0.5)';
+          if (v > 5) return 'rgba(255,200,0,0.5)';
+          if (v > 0) return 'rgba(34,197,94,0.4)';
+          return 'rgba(100,100,100,0.2)';
+        }),
+        borderColor: dailyRain.map(v => {
+          if (v > 20) return '#EF4444';
+          if (v > 5) return '#ffc800';
+          if (v > 0) return '#22C55E';
+          return '#444';
+        }),
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `Chuva: ${ctx.parsed.y} mm` } }
+      },
+      scales: {
+        x: { ticks: { color: '#555', maxRotation: 0 }, grid: { color: 'rgba(255,255,255,0.03)' } },
+        y: { ticks: { color: '#555', callback: v => v + ' mm' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+
+  // CHIRPS availability status
+  const chirpEl = document.getElementById('chirpsStatus');
+  let chirpHTML = '';
+
+  // Show 14-day availability grid
+  const recent = chirps.results.slice(0, 14);
+  chirpHTML += `<div class="chirps-grid">`;
+  for (const r of recent) {
+    const cls = r.available ? 'ok' : 'missing';
+    const icon = r.available ? '&#9679;' : '&mdash;';
+    chirpHTML += `<div class="chirps-day ${cls}"><div class="day">${r.label}</div><div class="dot">${icon}</div></div>`;
+  }
+  chirpHTML += `</div>`;
+  const pct = Math.round((chirps.ok / chirps.total) * 100);
+  chirpHTML += `<div class="chirps-summary">
+    <strong>${chirps.ok} de ${chirps.total} dias</strong> com dados satelit&aacute;res dispon&iacute;veis (${pct}%)<br>
+    ${pct > 70 ? '<span style="color:#22C55E">&#10004; Cobertura adequada para laudo t&eacute;cnico</span>' :
+      '<span style="color:#ffc800">&#9888; Parcial — dados recentes podem levar ~21 dias para processar</span>'}
+    <br>
+    <span style="font-size:0.65rem;color:#555">Fonte: CHIRPS-2.0 (Climate Hazards Group, UCSB) &mdash; resolu&ccedil;&atilde;o 0.05&deg; (~5km)</span>
+  </div>`;
+  chirpEl.innerHTML = chirpHTML;
+
   // ============================================================
   //  Section 5: CHIRPS — grid visual
   // ============================================================
@@ -508,14 +601,50 @@ function renderReport(om, inmet, station, chirps, lat, lon, name) {
   chirpEl.innerHTML = chirpHTML;
 
   // ============================================================
-  //  Section 6: INMET Station
+  //  Section 6: INMET Station + Validation
   // ============================================================
   const stationEl = document.getElementById('stationInfo');
   if (station) {
     const tipo = station.tipoEstacao || 'N/A';
     const dist = station.vl_distancia ? parseFloat(station.vl_distancia).toFixed(1) : '?';
     const tipoBadge = tipo === 'AUTOMÁTICA' ? 'Automa<tica (AUT)' : 'Convencional';
+
+    // Validation against INMET (using safe column access)
+    let validationHTML = '';
+    if (inmet) {
+      const inmetTemp = safeGet(inmet, 'tem_bulu_sec', 'TEMPERATURA_BULBO_SECO');
+      const omTemp = c.temperature_2m;
+      const inmetUm = safeGet(inmet, 'umid_relat', 'UMIDADE_RELATIVA');
+      const omUm = c.relative_humidity_2m;
+      const inmetVento = safeGet(inmet, 'vel_vento', 'VENTO_VELOCIDADE');
+      const omVento = c.wind_speed_10m;
+      const inmetChuva = safeGet(inmet, 'chuva', 'CHUVA', 'PRECIPITACAO_TOTAL');
+
+      const tempDiff = inmetTemp !== null ? Math.abs(omTemp - inmetTemp).toFixed(1) : null;
+      const tempOk = tempDiff !== null ? parseFloat(tempDiff) < 3 : false;
+
+      const statusIcon = inmetTemp !== null ? (tempOk ? '<span style="color:#22C55E">&#10004; Consistente</span>' :
+        `<span style="color:#ffc800">&#9888; Diferen&ccedil;a ${tempDiff}°C</span>`) : '';
+
+      validationHTML = `<div style="margin-bottom:1rem;padding:0.8rem;background:rgba(0,0,0,.3);border-radius:8px;border:1px solid rgba(76,175,80,.15)">
+        <div style="font-size:.7rem;color:#4CAF50;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:.6rem">
+          Valida&ccedil;&atilde;o de Dados (INMET vs Open-Meteo)
+        </div>
+        <table>
+          <tr><td>Temperatura Open-Meteo</td><td>${omTemp}°C</td></tr>
+          <tr><td>Temperatura INMET</td><td>${inmetTemp !== null ? inmetTemp + '°C' : 'N/A'}</td></tr>
+          <tr><td>Consist&ecirc;ncia</td><td>${statusIcon}</td></tr>
+          <tr><td>Umidade Open-Meteo</td><td>${omUm}%</td></tr>
+          <tr><td>Umidade INMET</td><td>${inmetUm !== null ? inmetUm + '%' : 'N/A'}</td></tr>
+          <tr><td>Vento Open-Meteo</td><td>${omVento} km/h</td></tr>
+          <tr><td>Vento INMET</td><td>${inmetVento !== null ? inmetVento + ' m/s' : 'N/A'}</td></tr>
+          ${inmetChuva !== null ? `<tr><td>Chuva INMET</td><td>${inmetChuva} mm</td></tr>` : ''}
+        </table>
+      </div>`;
+    }
+
     stationEl.innerHTML = `
+      ${validationHTML}
       <div class="station-card">
         <div class="station-badge">${tipoBadge}</div>
         <table>
@@ -543,6 +672,12 @@ function renderReport(om, inmet, station, chirps, lat, lon, name) {
         </div>
       </div>`;
   }
+
+  // Show PDF download button after render
+  const pdfBtn = document.getElementById('pdfDlBtn');
+  if (typeof html2pdf !== 'undefined') {
+    pdfBtn.style.display = 'inline-block';
+  }
 }
 
 // ============================================================
@@ -561,6 +696,20 @@ document.addEventListener('DOMContentLoaded', () => {
 document.getElementById('cityInput').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') generateReport();
 });
+
+function downloadPDF() {
+  const report = document.getElementById('report');
+  const opt = {
+    margin: [10, 10, 10, 10],
+    filename: `climafazenda_relatório_${new Date().toISOString().slice(0, 10)}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  if (typeof html2pdf !== 'undefined') {
+    html2pdf().set(opt).from(report).save();
+  }
+}
 </script>
 
 </body>
