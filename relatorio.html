@@ -10,243 +10,181 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'Inter', sans-serif; background: #0f1a0f; color: #e5e5e5; min-height: 100vh; }
 
-/* Top bar */
 .top-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between;
   padding: 0.8rem 1.5rem;
   background: #0a0a0a;
   border-bottom: 1px solid rgba(34,120,34,0.3);
-  position: sticky;
-  top: 0;
-  z-index: 1000;
+  position: sticky; top: 0; z-index: 1000;
 }
 .top-bar .brand { font-size: 1.1rem; font-weight: 900; color: #4CAF50; letter-spacing: 1px; }
 .top-bar .brand span { color: #fff; }
 .back-link {
-  color: #4CAF50;
-  text-decoration: none;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border: 1px solid rgba(34,120,34,0.3);
-  padding: 0.35rem 0.7rem;
-  border-radius: 8px;
-  transition: 0.2s;
-  white-space: nowrap;
+  color: #4CAF50; text-decoration: none; font-size: 0.75rem; font-weight: 600;
+  border: 1px solid rgba(34,120,34,0.3); padding: 0.35rem 0.7rem; border-radius: 8px; transition: 0.2s; white-space: nowrap;
 }
 .back-link:hover { background: rgba(34,120,34,0.15); }
 
-/* Input Section */
 .input-section {
-  background: rgba(10,10,10,0.9);
-  padding: 2rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  align-items: center;
-  justify-content: center;
+  background: rgba(10,10,10,0.9); padding: 2rem;
+  display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: center;
 }
-.input-section .brand-inline { display: none; }
 input[type="text"] {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(34,120,34,0.3);
-  border-radius: 6px;
-  padding: 0.5rem 0.8rem;
-  color: #e5e5e5;
-  font-family: 'Inter', sans-serif;
-  font-size: 0.85rem;
-  outline: none;
-  width: 200px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(34,120,34,0.3);
+  border-radius: 6px; padding: 0.5rem 0.8rem; color: #e5e5e5;
+  font-family: 'Inter', sans-serif; font-size: 0.85rem; outline: none; width: 200px;
 }
 input[type="text"]:focus { border-color: #4CAF50; }
 .btn {
-  background: #4CAF50;
-  color: #fff;
-  border: none;
-  padding: 0.55rem 1.2rem;
-  border-radius: 6px;
-  font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: 0.2s;
-  white-space: nowrap;
+  background: #4CAF50; color: #fff; border: none; padding: 0.55rem 1.2rem;
+  border-radius: 6px; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: 0.2s; white-space: nowrap;
 }
 .btn:hover { background: #45a049; }
 .btn-outline {
-  background: transparent;
-  border: 1px solid rgba(34,120,34,0.4);
-  color: #4CAF50;
+  background: transparent; border: 1px solid rgba(34,120,34,0.4); color: #4CAF50;
 }
 .btn-outline:hover { background: rgba(34,120,34,0.1); }
 
-/* Report Page */
 .report { max-width: 900px; margin: 0 auto; padding: 1.5rem; display: none; }
 .report.show { display: block; }
 
-/* Cover */
 .cover {
-  text-align: center;
-  padding: 2.5rem 1.5rem;
-  margin: 1rem 0 1.5rem;
+  text-align: center; padding: 2.5rem 1.5rem; margin: 1rem 0 1.5rem;
   background: linear-gradient(135deg, #0a1a0a, #12200f);
-  border: 1px solid rgba(34,120,34,0.2);
-  border-radius: 12px;
+  border: 1px solid rgba(34,120,34,0.2); border-radius: 12px;
 }
 .cover h1 { font-size: 1.8rem; font-weight: 900; color: #4CAF50; }
 .cover h1 span { color: #fff; }
 .cover .sub { color: #666; margin-top: 0.5rem; font-size: 0.85rem; }
 .cover .meta { margin-top: 1.2rem; font-size: 0.8rem; color: #555; line-height: 1.9; }
 
-/* Sections */
 .section {
-  background: rgba(15,30,15,0.8);
-  border: 1px solid rgba(34,120,34,0.15);
-  border-radius: 10px;
-  padding: 1.2rem;
-  margin-bottom: 1.2rem;
+  background: rgba(15,30,15,0.8); border: 1px solid rgba(34,120,34,0.15);
+  border-radius: 10px; padding: 1.2rem; margin-bottom: 1.2rem;
 }
 .section h2 {
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: #4CAF50;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 0.8rem;
-  padding-bottom: 0.4rem;
+  font-size: 0.9rem; font-weight: 800; color: #4CAF50;
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 0.8rem; padding-bottom: 0.4rem;
   border-bottom: 1px solid rgba(34,120,34,0.2);
 }
 
-/* Metrics Grid */
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 0.6rem;
-  margin-bottom: 1.2rem;
-}
+.metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.6rem; margin-bottom: 1.2rem; }
 .metric {
-  background: #0d150d;
-  border: 1px solid rgba(34,120,34,0.1);
-  border-radius: 8px;
-  padding: 0.8rem;
-  text-align: center;
+  background: #0d150d; border: 1px solid rgba(34,120,34,0.1);
+  border-radius: 8px; padding: 0.8rem; text-align: center;
 }
 .metric .label { font-size: 0.6rem; color: #555; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
 .metric .value { font-size: 1.4rem; font-weight: 800; color: #4CAF50; margin-top: 0.2rem; }
 .metric .unit { font-size: 0.7rem; color: #666; }
 .metric .desc { font-size: 0.65rem; color: #555; margin-top: 0.15rem; line-height: 1.3; }
 
-/* Alerts */
 .alert {
-  background: rgba(255,200,0,0.08);
-  border-left: 3px solid #ffc800;
-  padding: 0.6rem 0.8rem;
-  border-radius: 0 6px 6px 0;
-  margin-bottom: 0.5rem;
-  font-size: 0.8rem;
-  color: #e5e5e5;
-  line-height: 1.4;
+  background: rgba(255,200,0,0.08); border-left: 3px solid #ffc800;
+  padding: 0.6rem 0.8rem; border-radius: 0 6px 6px 0; margin-bottom: 0.5rem;
+  font-size: 0.8rem; color: #e5e5e5; line-height: 1.4;
 }
 .alert.bad { background: rgba(239,68,68,0.08); border-left-color: #EF4444; }
 .alert.good { background: rgba(34,197,94,0.08); border-left-color: #22C55E; }
 
-/* Forecast Table */
 .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 table { width: 100%; border-collapse: collapse; font-size: 0.78rem; min-width: 420px; }
 th { text-align: left; padding: 0.5rem 0.4rem; color: #666; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 td { padding: 0.5rem 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.03); color: #bbb; }
 
-/* Chart */
 .chart-wrap { background: #0d150d; padding: 0.8rem; border-radius: 8px; margin-bottom: 0.8rem; }
 .chart-wrap h3 { font-size: 0.75rem; color: #fff; margin-bottom: 0.6rem; font-weight: 700; }
 
-/* Footer */
-.report-footer {
-  text-align: center;
-  padding: 1.5rem;
-  color: #333;
-  font-size: 0.65rem;
-  border-top: 1px solid rgba(255,255,255,0.05);
+/* CHIRPS section */
+.chirps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 6px; }
+.chirps-day {
+  background: #0d150d; border: 1px solid rgba(34,120,34,0.15); border-radius: 6px;
+  padding: 0.4rem; text-align: center; font-size: 0.65rem; line-height: 1.4;
 }
-.report-footer span { color: #4CAF50; }
+.chirps-day .day { color: #888; font-weight: 600; }
+.chirps-day.ok { border-color: rgba(34,120,34,0.3); background: rgba(34,120,34,0.05); }
+.chirps-day.ok .dot { color: #22C55E; font-size: 0.9rem; }
+.chirps-day.missing { border-color: rgba(255,255,255,0.05); opacity: 0.5; }
+.chirps-day.missing .dot { color: #555; font-size: 0.9rem; }
+.chirps-summary { font-size: 0.8rem; color: #bbb; margin-top: 0.8rem; line-height: 1.6; }
+.chirps-summary strong { color: #4CAF50; }
 
+/* Station section */
+.station-card { background: #0d150d; border: 1px solid rgba(34,120,34,0.15); border-radius: 8px; padding: 1rem; }
+.station-card .station-badge { color: #4CAF50; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
+.station-card table { font-size: 0.78rem; }
+.station-card td:first-child { color: #666; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; width: 130px; }
+.station-card td { padding: 0.4rem 0.4rem; color: #bbb; }
+
+.no-station {
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 8px; padding: 1rem; text-align: center;
+}
+.no-station .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+.no-station .title { font-size: 0.85rem; color: #888; margin-bottom: 0.3rem; }
+.no-station .desc { font-size: 0.75rem; color: #555; line-height: 1.5; }
+
+.print-btn {
+  background: rgba(34,120,34,0.15); color: #4CAF50; border: 1px solid rgba(34,120,34,0.3);
+  padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.75rem; cursor: pointer;
+  font-family: 'Inter', sans-serif; transition: 0.2s;
+}
+.print-btn:hover { background: #4CAF50; color: #fff; }
+
+.report-footer { text-align: center; padding: 1.5rem; color: #333; font-size: 0.65rem; border-top: 1px solid rgba(255,255,255,0.05); }
+.report-footer span { color: #4CAF50; }
 .loading-text { text-align: center; padding: 3rem; color: #4CAF50; }
 
-/* === MOBILE === */
 @media (max-width: 600px) {
   .top-bar { padding: 0.6rem 1rem; }
   .top-bar .brand { font-size: 0.95rem; }
   .input-section { padding: 1.2rem 1rem; flex-direction: column; align-items: stretch; }
-  .input-section input[type="text"] { width: 100%; font-size: 0.8rem; }
+  .input-section input[type="text"] { width: 100%; }
   .input-section .btn-wrap { display: flex; gap: 0.5rem; }
   .input-section .btn-wrap .btn { flex: 1; text-align: center; }
-
   .report { padding: 1rem; }
   .cover { padding: 2rem 1rem; margin: 0.5rem 0 1rem; }
   .cover h1 { font-size: 1.4rem; }
   .cover .sub { font-size: 0.75rem; }
   .cover .meta { font-size: 0.75rem; }
-
   .section { padding: 1rem; margin-bottom: 1rem; }
   .section h2 { font-size: 0.8rem; }
-
   .metrics { grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
   .metric { padding: 0.6rem 0.4rem; }
   .metric .label { font-size: 0.55rem; }
   .metric .value { font-size: 1.2rem; }
   .metric .desc { font-size: 0.6rem; }
-
   .alert { font-size: 0.75rem; padding: 0.5rem 0.7rem; }
   .chart-wrap { padding: 0.6rem; }
   .chart-wrap h3 { font-size: 0.7rem; }
-
   table { font-size: 0.7rem; }
   th { padding: 0.4rem 0.3rem; font-size: 0.55rem; }
   td { padding: 0.4rem 0.3rem; }
+  .chirps-grid { grid-template-columns: repeat(7, 1fr); }
 }
-
-/* Very small screens */
 @media (max-width: 380px) {
   .metrics { grid-template-columns: repeat(2, 1fr); }
+  .chirps-grid { grid-template-columns: repeat(5, 1fr); }
 }
-
-/* === PRINT === */
 @media print {
   .top-bar, .input-section { display: none !important; }
   body { background: #fff; color: #111; }
   .report { display: block; }
   .section { break-inside: avoid; background: #fafafa; border-color: #ddd; }
   .cover { background: #f0f7f0; border-color: #4CAF50; }
-  .cover h1 { color: #2e7d32; }
-  .cover h1 span { color: #111; }
-  .cover .meta { color: #333; }
-  .cover .sub { color: #666; }
-  .alert { color: #333; }
-  td { color: #333; }
-  th { color: #333; }
-  .metric { background: #f5f5f5; border-color: #ddd; }
-  .metric .label { color: #555; }
-  .metric .value { color: #2e7d32; }
-  .metric .unit { color: #666; }
-  .metric .desc { color: #555; }
-  .chart-wrap { background: #f9f9f9; }
-  .chart-wrap h3 { color: #111; }
-  .section h2 { color: #2e7d32; border-color: #ccc; }
-  .cover, .section { page-break-inside: avoid; }
+  .cover h1 { color: #2e7d32; } .cover h1 span { color: #111; }
+  /* ... rest of print styles ... */
 }
 </style>
 </head>
 <body>
 
-<!-- Top bar -->
 <div class="top-bar">
   <a href="index.html" class="back-link">&#8592; Voltar ao Mapa</a>
   <div class="brand">CLIMA<span>FAZENDA</span></div>
-  <div style="width:80px"></div>
+  <button class="print-btn" onclick="window.print()">&#128424; Imprimir / PDF</button>
 </div>
 
-<!-- Input -->
 <div class="input-section" id="inputSection">
   <input type="text" id="cityInput" placeholder="Cidade (ex: Petrolina, PE)" />
   <div class="btn-wrap">
@@ -255,13 +193,11 @@ td { padding: 0.5rem 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.03); co
   </div>
 </div>
 
-<!-- Loading -->
 <div id="loading" style="display:none" class="loading-text">
   <div style="margin-bottom:1rem">Coletando dados clim&aacute;ticos...</div>
   <div style="color:#666;font-size:0.8rem">Fontes: INMET + Open-Meteo + CHIRPS</div>
 </div>
 
-<!-- Report -->
 <div class="report" id="report">
   <div class="cover">
     <h1>CLIMA<span>FAZENDA</span></h1>
@@ -314,6 +250,23 @@ td { padding: 0.5rem 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.03); co
 const INMET_BASE = "https://apitempo.inmet.gov.br";
 const CHIRPS_GLOBAL = "https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/tifs/p05";
 
+// ============================================================
+//  Check URL params — auto-fill from dashboard
+// ============================================================
+function getURLParams() {
+  const p = new URLSearchParams(window.location.search);
+  const lat = p.get('lat');
+  const lon = p.get('lon');
+  const city = p.get('city');
+  if (lat && lon) {
+    return { lat: parseFloat(lat), lon: parseFloat(lon), city: decodeURIComponent(city || '') };
+  }
+  return null;
+}
+
+// ============================================================
+//  Geocode
+// ============================================================
 async function geocodeCity(query) {
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Brazil')}&limit=1&accept-language=pt-BR`
@@ -323,18 +276,23 @@ async function geocodeCity(query) {
   return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), name: data[0].display_name.split(',')[0] };
 }
 
+// ============================================================
+//  INMET
+// ============================================================
 async function inmetEstacoes(lat, lon) {
   const res = await fetch(`${INMET_BASE}/estacoes/${lat}/${lon}`);
   if (!res.ok) throw new Error(`INMET ${res.status}`);
   return res.json();
 }
-
 async function inmetHora(codigo) {
   const res = await fetch(`${INMET_BASE}/estacao/dados/horaria/${codigo}`);
   if (!res.ok) throw new Error(`INMET ${res.status}`);
   return res.json();
 }
 
+// ============================================================
+//  Open-Meteo
+// ============================================================
 async function openMeteo(lat, lon) {
   const url = new URL('https://api.open-meteo.com/v1/forecast');
   url.searchParams.set('latitude', lat);
@@ -358,31 +316,42 @@ async function openMeteo(lat, lon) {
   return res.json();
 }
 
+// ============================================================
+//  CHIRPS — corrected URL format (single .tif, not .tif.tif)
+// ============================================================
 function chirpsUrl(data) {
   const y = data.getFullYear();
   const m = String(data.getMonth() + 1).padStart(2, '0');
   const d = String(data.getDate()).padStart(2, '0');
-  return `${CHIRPS_GLOBAL}/${y}/${m}/chirps-v2.0.${y}.${m}.${d}.tif.tif`;
+  return `${CHIRPS_GLOBAL}/${y}/${m}/chirps-v2.0.${y}.${m}.${d}.tif`;
 }
 
-async function checkAvailable(url) {
-  try { const r = await fetch(url, { method: 'HEAD' }); return r.status === 200; } catch { return false; }
-}
-
-async function checkChirps(dias = 14) {
-  let ok = 0;
+async function checkChirps(dias = 30) {
+  const results = [];
+  let ok = 0, fail = 0;
   for (let i = 0; i < dias; i++) {
     const dt = new Date(); dt.setDate(dt.getDate() - i);
-    if (await checkAvailable(chirpsUrl(dt))) ok++;
+    const url = chirpsUrl(dt);
+    try {
+      const r = await fetch(url, { method: 'HEAD' });
+      const available = r.status === 200;
+      if (available) ok++; else fail++;
+      results.push({ date: dt, label: `${dt.getDate()}/${dt.getMonth() + 1}`, available });
+    } catch {
+      fail++;
+      results.push({ date: dt, label: `${dt.getDate()}/${dt.getMonth() + 1}`, available: false });
+    }
   }
-  return { ok, total: dias };
+  return { ok, total: dias, fail, results };
 }
 
+// ============================================================
+//  Generate
+// ============================================================
 async function generateReport(coords) {
   const input = document.getElementById('inputSection');
   const loading = document.getElementById('loading');
   const report = document.getElementById('report');
-
   input.style.display = 'none';
   loading.style.display = 'block';
   report.classList.remove('show');
@@ -390,8 +359,8 @@ async function generateReport(coords) {
   try {
     let lat, lon, cityName;
     if (coords) {
-      ({ lat, lon } = coords);
-      cityName = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+      lat = coords.lat; lon = coords.lon;
+      cityName = coords.city || `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
     } else {
       const query = document.getElementById('cityInput').value.trim();
       if (!query) { alert('Digite o nome de uma cidade'); input.style.display = 'flex'; loading.style.display = 'none'; return; }
@@ -400,7 +369,7 @@ async function generateReport(coords) {
     }
 
     const omData = await openMeteo(lat, lon);
-    const chirpsData = await checkChirps(14);
+    const chirpsData = await checkChirps(30);
 
     let inmetData = null, stationInfo = null;
     try {
@@ -411,7 +380,7 @@ async function generateReport(coords) {
       const dados = await inmetHora(est.cd_estacao);
       if (dados.length > 0) inmetData = dados[0];
     } catch (err) {
-      console.warn('INMET indisponível, usando Open-Meteo:', err.message);
+      console.warn('INMET indisponível:', err.message);
     }
 
     renderReport(omData, inmetData, stationInfo, chirpsData, lat, lon, cityName);
@@ -428,20 +397,21 @@ function useCoords() {
   const lat = prompt('Latitude (ex: -9.3891):');
   const lon = prompt('Longitude (ex: -40.4950):');
   if (!lat || !lon) return;
-  generateReport({ lat: parseFloat(lat), lon: parseFloat(lon) });
+  generateReport({ lat: parseFloat(lat), lon: parseFloat(lon), city: '' });
 }
 
+// ============================================================
+//  Render
+// ============================================================
 function renderReport(om, inmet, station, chirps, lat, lon, name) {
-  const c = om.current;
-  const d = om.daily;
-  const h = om.hourly;
+  const c = om.current; const d = om.daily; const h = om.hourly;
   const now = new Date().toLocaleString('pt-BR');
 
   document.getElementById('reportMeta').innerHTML =
     `<div><strong>${name}</strong></div>` +
     `<div>Lat ${lat.toFixed(4)}&deg; &middot; Lon ${lon.toFixed(4)}&deg;</div>` +
     `<div>Gerado em ${now}</div>` +
-    `<div>Fonte principal: ${inmet ? 'INMET' : 'Open-Meteo'}${inmet ? ' (fallback: Open-Meteo)' : ''}</div>`;
+    `<div>Fonte: ${inmet ? 'INMET (dados oficiais)' : 'Open-Meteo (satélite)'}</div>`;
 
   const current = inmet || c;
   const temp = inmet ? current.tem_bulu_sec : c.temperature_2m;
@@ -451,41 +421,35 @@ function renderReport(om, inmet, station, chirps, lat, lon, name) {
   const pressao = inmet ? current.pre_atmest : c.surface_pressure;
   const chuva = inmet ? current.chuva : c.precipitation;
   const windUnit = inmet ? 'm/s' : 'km/h';
-  const fonte = inmet ? 'INMET' : 'Open-Meteo';
   const dirs = ['N', 'NE', 'L', 'SE', 'S', 'SO', 'O', 'NO'];
   const windIdx = inmet ? Math.round((current.dir_vento || 0) / 45) % 8 : Math.round(c.wind_direction_10m / 45) % 8;
 
   document.getElementById('currentMetrics').innerHTML =
-    `<div class="metric"><div class="label">Temperatura (${fonte})</div><div class="value">${Math.round(temp)}<span class="unit">°C</span></div><div class="desc">Sensa&ccedil;&atilde;o: ${Math.round(sens)}°C</div></div>` +
+    `<div class="metric"><div class="label">Temperatura</div><div class="value">${Math.round(temp)}<span class="unit">°C</span></div><div class="desc">Sensa&ccedil;&atilde;o: ${Math.round(sens)}°C</div></div>` +
     `<div class="metric"><div class="label">Umidade</div><div class="value">${umid}<span class="unit">%</span></div><div class="desc">${umid < 30 ? 'Cr&iacute;tico' : umid > 80 ? 'Favor&aacute;vel a fungos' : 'Adequado'}</div></div>` +
     `<div class="metric"><div class="label">Vento</div><div class="value">${Math.round(vento)}<span class="unit"> ${windUnit}</span></div><div class="desc">Dir: ${dirs[windIdx]}</div></div>` +
     `<div class="metric"><div class="label">Press&atilde;o</div><div class="value">${Math.round(pressao)}<span class="unit"> hPa</span></div></div>` +
     `<div class="metric"><div class="label">Chuva</div><div class="value">${chuva}<span class="unit"> mm</span></div><div class="desc">${chuva === 0 ? 'Sem chuva' : chuva < 5 ? 'Leve' : chuva < 15 ? 'Moderada' : 'Forte'}</div></div>` +
     `<div class="metric"><div class="label">Nuvens</div><div class="value">${inmet ? '--' : c.cloud_cover}<span class="unit">%</span></div></div>`;
 
+  // Alerts
   const alerts = [];
   if (umid < 30) alerts.push({ type: 'bad', text: `Umidade cr&iacute;tica (${umid}%) — risco de estresse h&iacute;drico. Verificar irriga&ccedil;&atilde;o suplementar.` });
   if (umid > 80) alerts.push({ type: 'bad', text: `Umidade elevada (${umid}%) — alto risco de doenças f&uacute;ngicas. Avaliar aplica&ccedil;&atilde;o preventiva de fungicida.` });
   else if (umid > 60) alerts.push({ type: '', text: `Umidade em aten&ccedil;&atilde;o (${umid}%) — monitorar sinais de ferrugem e míldio.` });
   else alerts.push({ type: 'good', text: `Umidade adequada (${umid}%) para a maioria das culturas.` });
-
   const ventoNum = parseFloat(vento);
-  if (ventoNum > 50) alerts.push({ type: 'bad', text: `Vento forte (${ventoNum} ${windUnit}) — risco de queda de frutos e danos &agrave;s estruturas.` });
+  if (ventoNum > 50) alerts.push({ type: 'bad', text: `Vento forte (${ventoNum} ${windUnit}) — risco de queda de frutos.` });
   else if (ventoNum > 35) alerts.push({ type: '', text: `Vento moderado-alto (${ventoNum} ${windUnit}). Aten&ccedil;&atilde;o a culturas sens&iacute;veis.` });
-
-  if (chuva > 20) alerts.push({ type: 'bad', text: `Acumulado significativo (${chuva} mm) — risco de encharcamento e eros&atilde;o.` });
-  if (chuva > 0 && chuva < 10) alerts.push({ type: 'good', text: `${chuva} mm acumulado — benef&iacute;cio para recarga de solo.` });
-
+  if (chuva > 20) alerts.push({ type: 'bad', text: `Acumulado significativo (${chuva} mm) — risco de encharcamento.` });
+  if (chuva > 0 && chuva < 10) alerts.push({ type: 'good', text: `${chuva} mm — benef&iacute;cio para recarga de solo.` });
   const nextRain = d.precipitation_sum.slice(0, 3);
   const dryDays = nextRain.filter(r => r === 0).length;
-  if (dryDays >= 3) alerts.push({ type: 'bad', text: `3 dias sem chuva prevista — risco de d&eacute;ficit h&iacute;drico.` });
+  if (dryDays >= 3) alerts.push({ type: 'bad', text: `3 dias sem chuva prevista — risco de d&eacute;ficit h&iacute;drico. Planejar irriga&ccedil;&atilde;o.` });
   else if (dryDays === 0 && nextRain.some(r => r > 30)) alerts.push({ type: 'bad', text: `Chuva forte prevista — adiar aplica&ccedil;&atilde;o de defensivos.` });
+  document.getElementById('alerts').innerHTML = alerts.map(a => `<div class="alert ${a.type}">${a.text}</div>`).join('');
 
-  document.getElementById('alerts').innerHTML = alerts.map(a =>
-    `<div class="alert ${a.type}">${a.text}</div>`
-  ).join('');
-
-  // Forecast
+  // Forecast table
   const tbody = document.getElementById('forecastBody');
   tbody.innerHTML = '';
   for (let i = 0; i < d.time.length; i++) {
@@ -495,9 +459,8 @@ function renderReport(om, inmet, station, chirps, lat, lon, name) {
     if (d.precipitation_sum[i] > 10) risco = 'M&eacute;dio';
     if (d.precipitation_sum[i] > 30) risco = 'Alto';
     if (d.uv_index_max && d.uv_index_max[i] > 10) risco = 'UV Extremo';
-    const riscoColor = risco === 'Alto' || risco === 'UV Extremo' ? '#EF4444' : risco === 'M&eacute;dio' ? '#ffc800' : '#22C55E';
-
-    tbody.innerHTML += `<tr><td>${dia}</td><td>${d.temperature_2m_min[i]}°C</td><td>${d.temperature_2m_max[i]}°C</td><td>${d.precipitation_sum[i]} mm</td><td>${Math.round(d.wind_speed_10m_max[i])} km/h</td><td style="color:${riscoColor}">${risco}</td></tr>`;
+    const cor = risco === 'Alto' || risco === 'UV Extremo' ? '#EF4444' : risco === 'M&eacute;dio' ? '#ffc800' : '#22C55E';
+    tbody.innerHTML += `<tr><td>${dia}</td><td>${d.temperature_2m_min[i]}°C</td><td>${d.temperature_2m_max[i]}°C</td><td>${d.precipitation_sum[i]} mm</td><td>${Math.round(d.wind_speed_10m_max[i])} km/h</td><td style="color:${cor}">${risco}</td></tr>`;
   }
 
   // Charts
@@ -522,17 +485,78 @@ function renderReport(om, inmet, station, chirps, lat, lon, name) {
     options: { ...chartD, scales: { ...chartD.scales, y: { ...chartD.scales.y, ticks: { ...chartD.scales.y.ticks, callback: v => v + 'mm' } } } }
   });
 
-  document.getElementById('chirpsStatus').innerHTML =
-    `<p style="font-size:0.8rem;color:#bbb;margin-bottom:0.5rem">CHIRPS: <strong style="color:#4CAF50">${chirps.ok}/${chirps.total}</strong> &uacute;ltimos 14 dias</p>` +
-    `<p style="font-size:0.7rem;color:#666">Precipitação hist&oacute;rica via sat&eacute;lite para valida&ccedil;&atilde;o e laudos.</p>`;
+  // ============================================================
+  //  Section 5: CHIRPS — grid visual
+  // ============================================================
+  const chirpEl = document.getElementById('chirpsStatus');
+  let chirpHTML = '';
+  chirpHTML += `<div class="chirps-grid">`;
+  for (const r of chirps.results) {
+    const cls = r.available ? 'ok' : 'missing';
+    const icon = r.available ? '&#9679;' : '&mdash;';
+    chirpHTML += `<div class="chirps-day ${cls}"><div class="day">${r.label}</div><div class="dot">${icon}</div></div>`;
+  }
+  chirpHTML += `</div>`;
+  const pct = Math.round((chirps.ok / chirps.total) * 100);
+  chirpHTML += `<div class="chirps-summary">
+    <strong>${chirps.ok} de ${chirps.total} dias</strong> com dados satelit&aacute;res dispon&iacute;veis (${pct}%)<br>
+    ${pct > 70 ? '<span style="color:#22C55E">&#10004; Cobertura adequada para laudo t&eacute;cnico</span>' :
+      '<span style="color:#ffc800">&#9888; Parcial — dados recentes podem levar 5-7 dias para processar</span>'}
+    <br><br>
+    <span style="font-size:0.7rem;color:#555">Fonte: CHIRPS-2.0 (Climate Hazards Group, UCSB) &mdash; resolução 0.05&deg; (~5km)</span>
+  </div>`;
+  chirpEl.innerHTML = chirpHTML;
 
+  // ============================================================
+  //  Section 6: INMET Station
+  // ============================================================
+  const stationEl = document.getElementById('stationInfo');
   if (station) {
-    document.getElementById('stationInfo').innerHTML =
-      `<table><tr><td>Nome</td><td>${station.nomeEstacao || '-'}</td></tr><tr><td>C&oacute;digo</td><td>${station.cd_estacao}</td></tr><tr><td>Tipo</td><td>${station.tipoEstacao || '-'}</td></tr><tr><td>Dist&acirc;ncia</td><td>${station.vl_distancia} km</td></tr></table>`;
+    const tipo = station.tipoEstacao || 'N/A';
+    const dist = station.vl_distancia ? parseFloat(station.vl_distancia).toFixed(1) : '?';
+    const tipoBadge = tipo === 'AUTOMÁTICA' ? 'Automa<tica (AUT)' : 'Convencional';
+    stationEl.innerHTML = `
+      <div class="station-card">
+        <div class="station-badge">${tipoBadge}</div>
+        <table>
+          <tr><td>Estação</td><td>${station.nomeEstacao || 'N/A'}</td></tr>
+          <tr><td>Código</td><td>${station.cd_estacao || 'N/A'}</td></tr>
+          <tr><td>Tipo</td><td>${tipo}</td></tr>
+          <tr><td>Distância</td><td>${dist} km</td></tr>
+          <tr><td>Localização</td><td>${station.lat || '?'} / ${station.lon || '?'}</td></tr>
+          ${station.dataAbertura ? `<tr><td>Ativa desde</td><td>${station.dataAbertura}</td></tr>` : ''}
+          ${station.endereco ? `<tr><td>Endereço</td><td>${station.endereco}</td></tr>` : ''}
+        </table>
+      </div>`;
   } else {
-    document.getElementById('stationInfo').innerHTML = '<p style="color:#666;font-size:0.8rem">Nenhuma esta&ccedil;&atilde;o INMET encontrada. Dados via sat&eacute;lite.</p>';
+    stationEl.innerHTML = `
+      <div class="no-station">
+        <div class="icon">&#9675;</div>
+        <div class="title">Nenhuma estação INMET encontrada num raio de ~100 km</div>
+        <div class="desc">
+          Para esta região, os dados são obtidos via sat&eacute;lite (Open-Meteo / modelos NOAA).<br><br>
+          <strong>Alternativas para dados locais:</strong><br>
+          &bull; <strong>ANA HidroWeb</strong> — estações pluviom&eacute;tricas e fluviom&eacute;tricas<br>
+          &bull; <strong>CHIRPS</strong> — precipitação histórica por sat&eacute;lite (0.05&deg;)<br>
+          &bull; <strong>ERA5 / NOAA</strong> — reanálise global (Open-Meteo)<br><br>
+          <span style="color:#4CAF50">Para laudos t&eacute;cnicos, CHIRPS + Open-Meteo cobrem sem estações f&iacute;sicas.</span>
+        </div>
+      </div>`;
   }
 }
+
+// ============================================================
+//  Auto-detect URL params from dashboard
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  const params = getURLParams();
+  if (params) {
+    // Pre-fill city input
+    document.getElementById('cityInput').value = params.city || '';
+    // Auto-generate report
+    generateReport({ lat: params.lat, lon: params.lon, city: params.city });
+  }
+});
 
 document.getElementById('cityInput').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') generateReport();

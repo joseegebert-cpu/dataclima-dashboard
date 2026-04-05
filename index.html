@@ -333,7 +333,7 @@
             <button onclick="searchCity()">&#128269; Buscar</button>
             <span class="search-loading" id="searchLoading">Buscando...</span>
         </div>
-        <a href="relatorio.html" class="report-link">&#128196; Relatório Agrícola</a>
+        <a href="#" class="report-link" id="reportLink" onclick="openReport()">&#128196; Relatório Agrícola</a>
         <div class="status-badge" id="statusBadge">&#9679; Aguardando localização</div>
     </header>
 
@@ -436,6 +436,7 @@
     // ============================================================
     let currentLat = null;
     let currentLon = null;
+    let currentCityName = null;
     let userMarker = null;
     let clickMarker = null;
     let tempChartInstance = null;
@@ -657,6 +658,15 @@
         loading.style.display = 'none';
     }
 
+    function openReport() {
+        if (currentLat && currentLon) {
+            const city = currentCityName || `${currentLat.toFixed(2)}, ${currentLon.toFixed(2)}`;
+            window.location.href = `relatorio.html?lat=${currentLat}&lon=${currentLon}&city=${encodeURIComponent(city)}`;
+        } else {
+            window.location.href = 'relatorio.html';
+        }
+    }
+
     // Enter key triggers search
     document.getElementById('cityInput').addEventListener('keydown', function(e) {
         if (e.key === 'Enter') searchCity();
@@ -702,6 +712,11 @@
         ).join(', ');
         document.getElementById('locCoords').textContent =
             `Lat ${lat.toFixed(4)}° · Lon ${lon.toFixed(4)}° · Atualizado às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+
+        // Save city name for report link
+        currentCityName = name.trim();
+        document.getElementById('reportLink').href =
+            `relatorio.html?lat=${lat}&lon=${lon}&city=${encodeURIComponent(currentCityName)}`;
 
         // Hero
         document.getElementById('tempHero').innerHTML = `<span>${Math.round(c.temperature_2m)}</span><sup>°C</sup>`;
