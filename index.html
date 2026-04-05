@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataClima | Monitoramento Meteorol&oacute;gico</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #e5e5e5; min-height: 100vh; }
+        a { color: inherit; }
+
+        /* Header */
+        header {
+            background: rgba(0,0,0,0.95);
+            border-bottom: 1px solid rgba(212,175,55,0.15);
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .brand { font-size: 1.3rem; font-weight: 900; color: #D4AF37; }
+        .brand span { color: #fff; }
+        .status-badge {
+            font-size: 0.7rem; padding: 0.3rem 0.8rem; border-radius: 50px;
+            background: rgba(234,179,8,0.15); color: #EAB308;
+            border: 1px solid rgba(234,179,8,0.3);
+            transition: 0.3s;
+        }
+        .status-badge.online { background: rgba(34,197,94,0.15); color: #22C55E; border-color: rgba(34,197,94,0.3); }
+        .status-badge.error { background: rgba(239,68,68,0.15); color: #EF4444; border-color: rgba(239,68,68,0.3); }
+
+        /* Layout: split */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            max-width: 1400px;
+            margin: 0 auto;
+            gap: 0;
+        }
+        @media (min-width: 900px) {
+            .main-layout { grid-template-columns: 40% 60%; }
+        }
+
+        /* Map */
+        .map-panel {
+            position: relative;
+            min-height: 45vh;
+        }
+        @media (min-width: 900px) {
+            .map-panel { position: sticky; top: 52px; height: calc(100vh - 52px); min-height: 0; }
+        }
+        #map { width: 100%; height: 100%; min-height: 45vh; z-index: 1; }
+
+        .map-overlay-info {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            z-index: 500;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(212,175,55,0.2);
+            border-radius: 10px;
+            padding: 0.6rem 1rem;
+            font-size: 0.78rem;
+            color: #ccc;
+            text-align: center;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .map-overlay-info.hidden { opacity: 0; }
+
+        .geolocating-popup {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .geolocating-popup .spinner {
+            width: 48px; height: 48px;
+            border: 3px solid rgba(212,175,55,0.2);
+            border-top-color: #D4AF37;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .geolocating-popup p { color: #D4AF37; font-size: 0.95rem; }
+        .geolocating-popup .hint { color: #666; font-size: 0.8rem; }
+        .geolocating-popup button {
+            background: #333; color: #ccc; border: 1px solid #555;
+            padding: 0.5rem 1.2rem; border-radius: 8px; cursor: pointer;
+            font-family: 'Inter', sans-serif; font-size: 0.85rem;
+        }
+        .geolocating-popup button:hover { background: #444; }
+
+        /* Dashboard */
+        .dashboard {
+            padding: 1.5rem;
+            display: none;
+        }
+        .dashboard.show { display: block; }
+
+        .location-header {
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .location-header h1 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1.2;
+        }
+        .location-header h1 span { color: #D4AF37; }
+        .location-header p { color: #555; font-size: 0.75rem; margin-top: 0.2rem; }
+        .update-btn {
+            background: rgba(212,175,55,0.1);
+            color: #D4AF37;
+            border: 1px solid rgba(212,175,55,0.2);
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            white-space: nowrap;
+            transition: 0.2s;
+        }
+        .update-btn:hover { background: #D4AF37; color: #000; }
+
+        /* Temp hero */
+        .temp-hero {
+            background: linear-gradient(135deg, #151515, #1a1508);
+            border: 1px solid rgba(212,175,55,0.12);
+            border-radius: 14px;
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 1.2rem;
+        }
+        .temp-value {
+            font-size: 4rem;
+            font-weight: 900;
+            color: #D4AF37;
+            line-height: 1;
+        }
+        .temp-value sup { font-size: 1.5rem; vertical-align: super; }
+        .temp-desc { color: #888; font-size: 0.9rem; margin-top: 0.4rem; }
+
+        /* Metrics */
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.7rem;
+            margin-bottom: 1.2rem;
+        }
+        @media (min-width: 500px) { .metrics { grid-template-columns: repeat(3, 1fr); } }
+        .metric-card {
+            background: #151515;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 1rem;
+        }
+        .metric-label { font-size: 0.65rem; color: #555; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+        .metric-value { font-size: 1.4rem; font-weight: 800; color: #fff; margin-top: 0.2rem; }
+        .metric-unit { font-size: 0.8rem; color: #555; font-weight: 400; }
+        .metric-sub { font-size: 0.7rem; color: #444; margin-top: 0.15rem; }
+
+        /* Charts */
+        .charts {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 1.2rem;
+        }
+        @media (min-width: 500px) { .charts { grid-template-columns: 1fr 1fr; } }
+        .chart-card {
+            background: #151515;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 1.2rem;
+        }
+        .chart-card h3 { font-size: 0.8rem; font-weight: 700; color: #fff; margin-bottom: 0.8rem; }
+
+        /* Forecast */
+        .forecast-card {
+            background: #151515;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+        }
+        .forecast-card h3 { font-size: 0.8rem; font-weight: 700; color: #fff; margin-bottom: 0.8rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        th { text-align: left; padding: 0.5rem 0.6rem; color: #666; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        td { padding: 0.6rem 0.6rem; border-bottom: 1px solid rgba(255,255,255,0.03); color: #bbb; }
+        .rain-bar { display: inline-block; height: 5px; background: #D4AF37; border-radius: 3px; vertical-align: middle; margin-left: 0.4rem; }
+
+        /* Footer */
+        .footer {
+            text-align: center; padding: 1.5rem; color: #333; font-size: 0.7rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .footer span { color: #D4AF37; }
+
+        /* Leaflet overrides */
+        .leaflet-control-attribution { font-size: 9px !important; background: rgba(0,0,0,0.7) !important; color: #555 !important; }
+        .leaflet-control-attribution a { color: #D4AF37 !important; }
+        .leaflet-control-zoom a {
+            background: #151515 !important;
+            color: #D4AF37 !important;
+            border-color: rgba(212,175,55,0.2) !important;
+        }
+
+        /* Skeleton loading */
+        .skeleton {
+            background: linear-gradient(90deg, #151515 25%, #1a1a1a 50%, #151515 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 6px;
+            min-height: 20px;
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">DATA<span>CLIMA</span></div>
+        <div class="status-badge" id="statusBadge">&#9679; Aguardando localização</div>
+    </header>
+
+    <!-- Geolocation popup -->
+    <div class="geolocating-popup" id="geoPopup">
+        <div class="spinner"></div>
+        <p>Detectando sua localização...</p>
+        <div class="hint">Permita o acesso à localização quando solicitado</div>
+        <button onclick="skipGeolocation()">Usar localização padrão (Santo &Acirc;ngelo)</button>
+    </div>
+
+    <div class="main-layout">
+        <!-- Map Panel -->
+        <div class="map-panel">
+            <div class="map-overlay-info" id="mapHint">
+                Clique em qualquer ponto do mapa para ver os dados climáticos
+            </div>
+            <div id="map"></div>
+        </div>
+
+        <!-- Data Panel -->
+        <div class="dashboard" id="dashboard">
+            <div class="location-header">
+                <div>
+                    <h1 id="locTitle">Carregando...</h1>
+                    <p id="locCoords"></p>
+                </div>
+                <button class="update-btn" onclick="refreshData()">&#8635; Atualizar</button>
+            </div>
+
+            <!-- Temp Hero -->
+            <div class="temp-hero">
+                <div class="temp-value" id="tempHero"><span>--</span><sup>°C</sup></div>
+                <div class="temp-desc" id="tempDesc">--</div>
+            </div>
+
+            <!-- Metrics -->
+            <div class="metrics">
+                <div class="metric-card">
+                    <div class="metric-label">Temperatura</div>
+                    <div class="metric-value" id="mTemp">--<span class="metric-unit"> °C</span></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Umidade</div>
+                    <div class="metric-value" id="mUmidade">--<span class="metric-unit"> %</span></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Vento</div>
+                    <div class="metric-value" id="mVento">--<span class="metric-unit"> km/h</span></div>
+                    <div class="metric-sub" id="mWindDir"></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Pressão</div>
+                    <div class="metric-value" id="mPressao">--<span class="metric-unit"> hPa</span></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Nuvens</div>
+                    <div class="metric-value" id="mNuvens">--<span class="metric-unit"> %</span></div>
+                    <div class="metric-sub" id="mNuvensDesc"></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Chuva</div>
+                    <div class="metric-value" id="mChuva">--<span class="metric-unit"> mm</span></div>
+                    <div class="metric-sub" id="mChuvaDesc"></div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts">
+                <div class="chart-card">
+                    <h3>&#127777; Temperatura &mdash; pr&oacute;ximos 5 dias</h3>
+                    <canvas id="tempChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>&#127782; Precipitação &mdash; pr&oacute;ximos 5 dias</h3>
+                    <canvas id="rainChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Forecast Table -->
+            <div class="forecast-card">
+                <h3>&#128197; Previsão Detalhada</h3>
+                <table>
+                    <thead>
+                        <tr><th>Data</th><th>Mín.</th><th>Máx.</th><th>Chuva</th><th>Vento</th></tr>
+                    </thead>
+                    <tbody id="forecastBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Dados · <span>Open-Meteo API</span> · Mapa · <span>Leaflet / OSM</span> · <span>DataClima</span> 2026
+    </div>
+
+    <script>
+    // ============================================================
+    //  State
+    // ============================================================
+    let currentLat = null;
+    let currentLon = null;
+    let userMarker = null;
+    let clickMarker = null;
+    let tempChartInstance = null;
+    let rainChartInstance = null;
+    const badge = document.getElementById('statusBadge');
+
+    // ============================================================
+    //  Map init
+    // ============================================================
+    const map = L.map('map', {
+        center: [-28.30, -54.248],
+        zoom: 5,
+        zoomControl: true
+    });
+
+    L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        {
+            attribution: '&copy; <a href="https://carto.com/">CARTO</a> · &copy; <a href="https://openstreetmap.org">OSM</a>',
+            maxZoom: 18,
+            subdomains: 'abcd'
+        }
+    ).addTo(map);
+
+    // Custom pulsing icon
+    function userIcon() {
+        return L.divIcon({
+            className: '',
+            html: `<div style="width:16px;height:16px;background:#22C55E;border-radius:50%;
+                box-shadow:0 0 12px rgba(34,197,94,0.6);border:2px solid #fff;z-index:999;position:relative;">
+                <div style="position:absolute;inset:-4px;border-radius:50%;border:2px solid rgba(34,197,94,0.3);
+                animation:pulse-ring 2s infinite;"></div></div>
+                <style>@keyframes pulse-ring{0%{transform:scale(1);opacity:1}100%{transform:scale(2);opacity:0}}</style>`,
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+        });
+    }
+
+    function goldIcon() {
+        return L.divIcon({
+            className: '',
+            html: `<div style="width:20px;height:20px;background:#D4AF37;border-radius:50%;
+                box-shadow:0 0 16px rgba(212,175,55,0.5);border:2px solid #fff;z-index:999;"></div>`,
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+        });
+    }
+
+    // Click handler
+    map.on('click', function(e) {
+        const { lat, lng } = e.latlng;
+
+        // Remove old click marker
+        if (clickMarker) map.removeLayer(clickMarker);
+
+        // Add click marker
+        clickMarker = L.marker([lat, lng], { icon: goldIcon() })
+            .addTo(map)
+            .bindPopup(`
+                <div style="font-family:Inter,sans-serif;text-align:center;font-size:13px;">
+                    <strong style="color:#D4AF37;">Buscando dados...</strong><br>
+                    <span style="color:#888;">${lat.toFixed(4)}, ${lng.toFixed(4)}</span>
+                </div>
+            `);
+
+        currentLat = lat;
+        currentLon = lng;
+
+        fetchWeather(lat, lng);
+    });
+
+    // ============================================================
+    //  Geolocation
+    // ============================================================
+    function skipGeolocation() {
+        document.getElementById('geoPopup').style.display = 'none';
+        setDefaultLocation();
+    }
+
+    function setDefaultLocation() {
+        currentLat = -28.30;
+        currentLon = -54.248;
+        map.setView([-28.30, -54.248], 10);
+        fetchWeather(currentLat, currentLon);
+    }
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                document.getElementById('geoPopup').style.display = 'none';
+                currentLat = pos.coords.latitude;
+                currentLon = pos.coords.longitude;
+
+                userMarker = L.marker([currentLat, currentLon], { icon: userIcon() })
+                    .addTo(map)
+                    .bindPopup('<div style="font-family:Inter,sans-serif;font-size:13px;"><strong style="color:#22C55E;">Sua localização</strong><br><span style="color:#888;">' +
+                        currentLat.toFixed(4) + ', ' + currentLon.toFixed(4) + '</span></div>')
+                    .openPopup();
+
+                map.setView([currentLat, currentLon], 12);
+                reverseGeocode(currentLat, currentLon);
+                fetchWeather(currentLat, currentLon);
+            },
+            (err) => {
+                console.warn('Geolocalização negada:', err.message);
+                document.getElementById('geoPopup').style.display = 'none';
+                setDefaultLocation();
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+        );
+    } else {
+        document.getElementById('geoPopup').style.display = 'none';
+        setDefaultLocation();
+    }
+
+    // ============================================================
+    //  Weather Fetch
+    // ============================================================
+    async function fetchWeather(lat, lon) {
+        badge.innerHTML = '&#9679; Carregando...';
+        badge.className = 'status-badge';
+
+        try {
+            const url = new URL('https://api.open-meteo.com/v1/forecast');
+            url.searchParams.set('latitude', lat);
+            url.searchParams.set('longitude', lon);
+            url.searchParams.set('current',
+                'temperature_2m,relative_humidity_2m,apparent_temperature,'
+                + 'surface_pressure,precipitation,wind_speed_10m,wind_direction_10m,cloud_cover'
+            );
+            url.searchParams.set('daily',
+                'temperature_2m_max,temperature_2m_min,precipitation_sum,'
+                + 'wind_speed_10m_max,uv_index_max'
+            );
+            url.searchParams.set('hourly',
+                'temperature_2m,precipitation,relative_humidity_2m,'
+                + 'wind_speed_10m,surface_pressure'
+            );
+            url.searchParams.set('timezone', 'America/Sao_Paulo');
+            url.searchParams.set('forecast_days', 5);
+
+            const res = await fetch(url.toString());
+            if (!res.ok) throw new Error(`API retornou ${res.status}`);
+            const data = await res.json();
+
+            // Try reverse geocode if we haven't yet
+            const name = await reverseGeocode(lat, lon);
+            renderDashboard(data, lat, lon, name);
+
+            badge.innerHTML = '&#9679; Online';
+            badge.className = 'status-badge online';
+
+            // Hide hint
+            document.getElementById('mapHint').classList.add('hidden');
+
+        } catch (err) {
+            badge.innerHTML = '&#8226; Erro na consulta';
+            badge.className = 'status-badge error';
+            console.error('Weather error:', err);
+            alert('Erro ao consultar dados climáticos:\n' + err.message);
+        }
+    }
+
+    async function refreshData() {
+        if (currentLat && currentLon) fetchWeather(currentLat, currentLon);
+    }
+
+    // ============================================================
+    //  Reverse Geocode
+    // ============================================================
+    let geoNameCache = {};
+    async function reverseGeocode(lat, lon) {
+        const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
+        if (geoNameCache[key]) return geoNameCache[key];
+
+        try {
+            const r = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`
+            );
+            const d = await r.json();
+            const a = d.address || {};
+            let name = a.city || a.town || a.village || a.county || a.state || 'Local';
+            const state = a.state || '';
+            name = state ? `${name}, ${state}` : name;
+            geoNameCache[key] = name;
+            return name;
+        } catch {
+            return `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`;
+        }
+    }
+
+    // ============================================================
+    //  Render
+    // ============================================================
+    function renderDashboard(data, lat, lon, name) {
+        const dashboard = document.getElementById('dashboard');
+        dashboard.classList.add('show');
+
+        const c = data.current;
+        const d = data.daily;
+
+        // Header
+        document.getElementById('locTitle').innerHTML = name.split(',').map((p, i) =>
+            i === 0 ? `<span>${p.trim()}</span>` : p.trim()
+        ).join(', ');
+        document.getElementById('locCoords').textContent =
+            `Lat ${lat.toFixed(4)}° · Lon ${lon.toFixed(4)}° · Atualizado às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+
+        // Hero
+        document.getElementById('tempHero').innerHTML = `<span>${Math.round(c.temperature_2m)}</span><sup>°C</sup>`;
+        document.getElementById('tempDesc').textContent =
+            `Sens. térmica ${Math.round(c.apparent_temperature)}°C · Umidade ${c.relative_humidity_2m}%`
+
+        // Metrics
+        document.getElementById('mTemp').innerHTML = `${Math.round(c.temperature_2m)}<span class="metric-unit"> °C</span>`;
+        document.getElementById('mUmidade').innerHTML = `${c.relative_humidity_2m}<span class="metric-unit"> %</span>`;
+        document.getElementById('mVento').innerHTML = `${Math.round(c.wind_speed_10m)}<span class="metric-unit"> km/h</span>`;
+        document.getElementById('mPressao').innerHTML = `${Math.round(c.surface_pressure)}<span class="metric-unit"> hPa</span>`;
+        document.getElementById('mNuvens').innerHTML = `${c.cloud_cover}<span class="metric-unit"> %</span>`;
+        document.getElementById('mChuva').innerHTML = `${c.precipitation}<span class="metric-unit"> mm</span>`;
+
+        // Wind direction
+        const dirs = ['N', 'NE', 'L', 'SE', 'S', 'SO', 'O', 'NO'];
+        const idx = Math.round(c.wind_direction_10m / 45) % 8;
+        document.getElementById('mWindDir').textContent = `Dir: ${dirs[idx]} (${c.wind_direction_10m}°)`;
+
+        // Cloud desc
+        const cc = c.cloud_cover;
+        document.getElementById('mNuvensDesc').textContent =
+            cc < 20 ? 'C&eacute;u limpo' : cc < 60 ? 'Parc. nublado' : cc < 80 ? 'Nublado' : 'Encoberto';
+
+        // Rain desc
+        const rain = c.precipitation;
+        document.getElementById('mChuvaDesc').textContent =
+            rain === 0 ? 'Sem precip.' : rain < 2.5 ? 'Garoa leve' : rain < 10 ? 'Moderada' : 'Forte';
+
+        renderCharts(data.hourly);
+        renderTable(d);
+
+        // Scroll dashboard into view on mobile
+        if (window.innerWidth < 900) {
+            dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    function renderCharts(hourly) {
+        const hours = hourly.time.slice(0, 120);
+        const labels = hours.map(t => {
+            const dt = new Date(t);
+            return dt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) + ' ' +
+                   dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        });
+
+        const temps = hourly.temperature_2m.slice(0, 120);
+        const rains = hourly.precipitation.slice(0, 120);
+
+        const chartDefaults = {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: '#555', maxTicksLimit: 8, maxRotation: 0 }, grid: { color: 'rgba(255,255,255,0.03)' } },
+                y: { ticks: { color: '#555' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+            }
+        };
+
+        if (tempChartInstance) tempChartInstance.destroy();
+        tempChartInstance = new Chart(document.getElementById('tempChart'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    data: temps,
+                    borderColor: '#D4AF37',
+                    backgroundColor: 'rgba(212,175,55,0.08)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    pointHitRadius: 10,
+                }]
+            },
+            options: {
+                ...chartDefaults,
+                scales: {
+                    ...chartDefaults.scales,
+                    y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v + '°' } }
+                }
+            }
+        });
+
+        if (rainChartInstance) rainChartInstance.destroy();
+        rainChartInstance = new Chart(document.getElementById('rainChart'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    data: rains,
+                    backgroundColor: rains.map(v => v > 0 ? 'rgba(212,175,55,0.6)' : 'rgba(212,175,55,0.1)'),
+                    borderColor: '#D4AF37',
+                    borderWidth: 0.5,
+                    borderRadius: 2,
+                }]
+            },
+            options: {
+                ...chartDefaults,
+                scales: {
+                    ...chartDefaults.scales,
+                    y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v + 'mm' } }
+                }
+            }
+        });
+    }
+
+    function renderTable(d) {
+        const body = document.getElementById('forecastBody');
+        body.innerHTML = '';
+        const maxRain = Math.max(...d.precipitation_sum, 1);
+
+        for (let i = 0; i < d.time.length; i++) {
+            const dt = new Date(d.time[i] + 'T12:00:00');
+            const dia = dt.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
+            const barW = (d.precipitation_sum[i] / maxRain) * 100;
+
+            body.innerHTML += `<tr>
+                <td>${dia}</td>
+                <td>${d.temperature_2m_min[i]}°</td>
+                <td>${d.temperature_2m_max[i]}°</td>
+                <td>${d.precipitation_sum[i]} mm<span class="rain-bar" style="width:${barW}px"></span></td>
+                <td>${Math.round(d.wind_speed_10m_max[i])} km/h</td>
+            </tr>`;
+        }
+    }
+    </script>
+
+</body>
+</html>
