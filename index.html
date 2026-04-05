@@ -37,6 +37,43 @@
         .status-badge.online { background: rgba(34,197,94,0.15); color: #22C55E; border-color: rgba(34,197,94,0.3); }
         .status-badge.error { background: rgba(239,68,68,0.15); color: #EF4444; border-color: rgba(239,68,68,0.3); }
 
+        /* City Search */
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .search-box input {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(212,175,55,0.25);
+            border-radius: 8px;
+            padding: 0.4rem 0.8rem;
+            color: #e5e5e5;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            width: 220px;
+            outline: none;
+            transition: 0.2s;
+        }
+        .search-box input::placeholder { color: #555; }
+        .search-box input:focus { border-color: #D4AF37; background: rgba(255,255,255,0.08); }
+        .search-box button {
+            background: rgba(212,175,55,0.15);
+            color: #D4AF37;
+            border: 1px solid rgba(212,175,55,0.3);
+            padding: 0.4rem 0.7rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: 0.2s;
+        }
+        .search-box button:hover { background: #D4AF37; color: #000; }
+        .search-loading { color: #D4AF37; font-size: 0.75rem; display: none; }
+
+        /* Header responsive */
+        header > div { display: flex; align-items: center; gap: 0.8rem; }
+
         /* Layout: split */
         .main-layout {
             display: grid;
@@ -240,6 +277,11 @@
 
     <header>
         <div class="brand">DATA<span>CLIMA</span></div>
+        <div class="search-box">
+            <input type="text" id="cityInput" placeholder="Buscar cidade (ex: São Paulo, RS)" />
+            <button onclick="searchCity()">&#128269; Buscar</button>
+            <span class="search-loading" id="searchLoading">Buscando...</span>
+        </div>
         <div class="status-badge" id="statusBadge">&#9679; Aguardando localização</div>
     </header>
 
@@ -508,6 +550,65 @@
     async function refreshData() {
         if (currentLat && currentLon) fetchWeather(currentLat, currentLon);
     }
+
+    // ============================================================
+    //  City Search
+    // ============================================================
+    async function searchCity() {
+        const input = document.getElementById('cityInput').value.trim();
+        if (!input) return;
+
+        const loading = document.getElementById('searchLoading');
+        loading.style.display = 'inline';
+
+        try {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input + ', Brazil')}&limit=1&accept-language=pt-BR`;
+            const res = await fetch(url);
+            const results = await res.json();
+
+            if (!results.length) {
+                alert('Cidade não encontrada. Tente outro nome.');
+                loading.style.display = 'none';
+                return;
+            }
+
+            const place = results[0];
+            const lat = parseFloat(place.lat);
+            const lon = parseFloat(place.lon);
+
+            // Move map
+            map.setView([lat, lon], 10);
+
+            // Remove old click marker
+            if (clickMarker) map.removeLayer(clickMarker);
+
+            // Add gold marker for searched city
+            clickMarker = L.marker([lat, lon], { icon: goldIcon() })
+                .addTo(map)
+                .bindPopup(`
+                    <div style="font-family:Inter,sans-serif;text-align:center;font-size:13px;">
+                        <strong style="color:#D4AF37;">${place.display_name.split(',')[0]}</strong><br>
+                        <span style="color:#888;">${lat.toFixed(4)}, ${lon.toFixed(4)}</span>
+                    </div>
+                `)
+                .openPopup();
+
+            // Fetch weather for searched location
+            currentLat = lat;
+            currentLon = lon;
+            fetchWeather(lat, lon);
+
+        } catch (err) {
+            alert('Erro ao buscar cidade: ' + err.message);
+        }
+
+        loading.style.display = 'none';
+    }
+
+    // Enter key triggers search
+    document.getElementById('cityInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') searchCity();
+    });
 
     // ============================================================
     //  Reverse Geocode
