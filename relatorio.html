@@ -235,7 +235,7 @@ td { padding: 0.5rem 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.03); co
 
   <div class="section">
     <h2>5. An&aacute;lise Hist&oacute;rica de Chuva (CHIRPS)</h2>
-    <div class="chart-wrap"><h3>Chuvas dos &uacute;ltimos 30 dias</h3><canvas id="chirpsChart"></canvas></div>
+    <div class="chart-wrap"><h3>Dados CHIRPS &mdash; &uacute;ltimos 30 dias</h3><canvas id="chirpsChart"></canvas></div>
     <div id="chirpsStatus"></div>
   </div>
 
@@ -323,7 +323,7 @@ async function openMeteo(lat, lon) {
     'wind_speed_10m,surface_pressure'
   );
   url.searchParams.set('timezone', 'America/Sao_Paulo');
-  url.searchParams.set('forecast_days', 7);
+  url.searchParams.set('forecast_days', 5);
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`Open-Meteo ${res.status}`);
   return res.json();
@@ -480,10 +480,10 @@ function renderReport(om, inmet, station, chirps, lat, lon, name) {
   }
 
   // Charts
-  const hours = h.time.slice(0, 168);
+  const hours = h.time.slice(0, 120);
   const labels = hours.map(t => new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) + ' ' + new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
-  const temps = h.temperature_2m.slice(0, 168);
-  const rains = h.precipitation.slice(0, 168);
+  const temps = h.temperature_2m.slice(0, 120);
+  const rains = h.precipitation.slice(0, 120);
 
   const chartD = { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } },
     scales: { x: { ticks: { color: '#555', maxTicksLimit: 8, maxRotation: 0 }, grid: { color: 'rgba(255,255,255,0.03)' } }, y: { ticks: { color: '#555' }, grid: { color: 'rgba(255,255,255,0.04)' } } }
@@ -501,44 +501,21 @@ function renderReport(om, inmet, station, chirps, lat, lon, name) {
     options: { ...chartD, scales: { ...chartD.scales, y: { ...chartD.scales.y, ticks: { ...chartD.scales.y.ticks, callback: v => v + 'mm' } } } }
   });
 
-  // CHIRPS rain chart — bar chart for last 30 days
+  // CHIRPS rain chart — bar chart for last 30 days using availability data
   const chirpsChartEl = document.getElementById('chirpsChart').getContext('2d');
-  const chirpsLabels = [];
-  let chirpsValues = [];
-  for (const r of chirps.results) {
-    chirpsLabels.push(r.label);
-  }
-  chirpsValues = chirps.results.map((_, i) => {
-    // Use daily forecast as proxy — Open-Meteo daily gives forecast only
-    // For historical, we just show available days (CHIRPS data is ~3 weeks behind)
-    return chirps.results[i].available ? null : 0;
-  });
-
-  // Better approach: show daily rain from Open-Meteo (forecast) + note CHIRPS delay
-  const dailyLabels = d.time.slice(0, 7);
-  const dailyRain = d.precipitation_sum.slice(0, 7);
-  const dailyMax = d.precipitation_sum.slice(0, 7);
+  const chirpsLabels = chirps.results.map(r => r.label);
+  const chirpsValues = chirps.results.map(() => 1); // 1 = data available
 
   const chirpsChartInstance = new Chart(chirpsChartEl, {
     type: 'bar',
     data: {
-      labels: dailyLabels,
+      labels: chirpsLabels,
       datasets: [{
-        data: dailyRain,
-        backgroundColor: dailyRain.map((v, i) => {
-          if (v > 20) return 'rgba(239,68,68,0.5)';
-          if (v > 5) return 'rgba(255,200,0,0.5)';
-          if (v > 0) return 'rgba(34,197,94,0.4)';
-          return 'rgba(100,100,100,0.2)';
-        }),
-        borderColor: dailyRain.map(v => {
-          if (v > 20) return '#EF4444';
-          if (v > 5) return '#ffc800';
-          if (v > 0) return '#22C55E';
-          return '#444';
-        }),
+        data: chirpsValues,
+        backgroundColor: chirps.results.map(r => r.available ? 'rgba(34,197,94,0.5)' : 'rgba(100,100,100,0.15)'),
+        borderColor: chirps.results.map(r => r.available ? '#22C55E' : '#555'),
         borderWidth: 1,
-        borderRadius: 4,
+        borderRadius: 2,
       }]
     },
     options: {
@@ -555,36 +532,11 @@ function renderReport(om, inmet, station, chirps, lat, lon, name) {
     }
   });
 
-  // CHIRPS availability status
-  const chirpEl = document.getElementById('chirpsStatus');
-  let chirpHTML = '';
-
-  // Show 14-day availability grid
-  const recent = chirps.results.slice(0, 14);
-  chirpHTML += `<div class="chirps-grid">`;
-  for (const r of recent) {
-    const cls = r.available ? 'ok' : 'missing';
-    const icon = r.available ? '&#9679;' : '&mdash;';
-    chirpHTML += `<div class="chirps-day ${cls}"><div class="day">${r.label}</div><div class="dot">${icon}</div></div>`;
-  }
-  chirpHTML += `</div>`;
-  const pct = Math.round((chirps.ok / chirps.total) * 100);
-  chirpHTML += `<div class="chirps-summary">
-    <strong>${chirps.ok} de ${chirps.total} dias</strong> com dados satelit&aacute;res dispon&iacute;veis (${pct}%)<br>
-    ${pct > 70 ? '<span style="color:#22C55E">&#10004; Cobertura adequada para laudo t&eacute;cnico</span>' :
-      '<span style="color:#ffc800">&#9888; Parcial — dados recentes podem levar ~21 dias para processar</span>'}
-    <br>
-    <span style="font-size:0.65rem;color:#555">Fonte: CHIRPS-2.0 (Climate Hazards Group, UCSB) &mdash; resolu&ccedil;&atilde;o 0.05&deg; (~5km)</span>
-  </div>`;
-  chirpEl.innerHTML = chirpHTML;
-
-  // ============================================================
-  //  Section 5: CHIRPS — grid visual
-  // ============================================================
+  // CHIRPS availability grid (all 30 days)
   const chirpEl = document.getElementById('chirpsStatus');
   let chirpHTML = '';
   chirpHTML += `<div class="chirps-grid">`;
-  for (const r of chirps.results) {
+  for (const r of chirps.results.slice(0, 14)) {
     const cls = r.available ? 'ok' : 'missing';
     const icon = r.available ? '&#9679;' : '&mdash;';
     chirpHTML += `<div class="chirps-day ${cls}"><div class="day">${r.label}</div><div class="dot">${icon}</div></div>`;
