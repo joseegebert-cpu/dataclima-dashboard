@@ -67,12 +67,57 @@
             cursor: pointer;
             font-family: 'Inter', sans-serif;
             transition: 0.2s;
+            white-space: nowrap;
         }
         .search-box button:hover { background: #D4AF37; color: #000; }
         .search-loading { color: #D4AF37; font-size: 0.75rem; display: none; }
 
+        .report-link {
+            color: #D4AF37;
+            text-decoration: none;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid rgba(212,175,55,0.3);
+            padding: 0.4rem 0.7rem;
+            border-radius: 8px;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .report-link:hover { background: rgba(212,175,55,0.15); }
+
         /* Header responsive */
         header > div { display: flex; align-items: center; gap: 0.8rem; }
+        header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.6rem;
+        }
+
+        @media (max-width: 700px) {
+            header {
+                padding: 0.6rem 1rem;
+            }
+            header > div {
+                flex-wrap: wrap;
+            }
+            .search-box {
+                order: 3;
+                width: 100%;
+            }
+            .search-box input {
+                flex: 1;
+                width: 100%;
+            }
+            .report-link {
+                order: 2;
+                font-size: 0.7rem;
+                padding: 0.3rem 0.6rem;
+            }
+            .brand { order: 1; }
+            #statusBadge { order: 2; }
+        }
 
         /* Layout: split */
         .main-layout {
@@ -84,6 +129,12 @@
         }
         @media (min-width: 900px) {
             .main-layout { grid-template-columns: 40% 60%; }
+        }
+        @media (max-width: 700px) {
+            .temp-hero { padding: 1rem; }
+            .temp-value { font-size: 3rem; }
+            .dashboard { padding: 1rem; }
+            .charts { grid-template-columns: 1fr; }
         }
 
         /* Map */
@@ -282,6 +333,7 @@
             <button onclick="searchCity()">&#128269; Buscar</button>
             <span class="search-loading" id="searchLoading">Buscando...</span>
         </div>
+        <a href="relatorio.html" class="report-link">&#128196; Relatório Agrícola</a>
         <div class="status-badge" id="statusBadge">&#9679; Aguardando localização</div>
     </header>
 
