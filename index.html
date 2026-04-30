@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DataClima | Monitoramento Meteorol&oacute;gico</title>
+    <title>DataClima | Monitoramento Meteorológico</title>
+
+    <!-- Fonts & Libraries -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #e5e5e5; min-height: 100vh; }
@@ -33,6 +36,7 @@
             background: rgba(234,179,8,0.15); color: #EAB308;
             border: 1px solid rgba(234,179,8,0.3);
             transition: 0.3s;
+            white-space: nowrap;
         }
         .status-badge.online { background: rgba(34,197,94,0.15); color: #22C55E; border-color: rgba(34,197,94,0.3); }
         .status-badge.error { background: rgba(239,68,68,0.15); color: #EF4444; border-color: rgba(239,68,68,0.3); }
@@ -201,6 +205,16 @@
         }
         .dashboard.show { display: block; }
 
+        /* Skeleton loading */
+        .skeleton {
+            background: linear-gradient(90deg, #151515 25%, #1a1a1a 50%, #151515 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 6px;
+            min-height: 20px;
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
         .location-header {
             margin-bottom: 1.2rem;
             display: flex;
@@ -328,11 +342,16 @@
             background: rgba(255,200,0,0.08);
             border-color: rgba(255,200,0,0.3);
         }
+        .alert-banner.error {
+            background: rgba(239,68,68,0.08);
+            border-color: rgba(239,68,68,0.3);
+        }
         .alert-banner .alert-title {
             font-size: 0.8rem; font-weight: 700; color: #EF4444;
             margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.4rem;
         }
         .alert-banner.warn .alert-title { color: #ffc800; }
+        .alert-banner.error .alert-title { color: #EF4444; }
         .alert-banner .alert-text { font-size: 0.75rem; color: #bbb; line-height: 1.5; }
         .alert-banner .alert-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.5rem; }
         .alert-banner .alert-tag {
@@ -352,29 +371,20 @@
             0%, 100% { box-shadow: 0 0 0 rgba(255,200,0,0); }
             50% { box-shadow: 0 0 20px rgba(255,200,0,0.15); }
         }
-
-        /* Skeleton loading */
-        .skeleton {
-            background: linear-gradient(90deg, #151515 25%, #1a1a1a 50%, #151515 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-            border-radius: 6px;
-            min-height: 20px;
-        }
-        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
 <body>
 
+    <!-- Header -->
     <header>
         <div class="brand">DATA<span>CLIMA</span></div>
         <div class="search-box">
-            <input type="text" id="cityInput" placeholder="Buscar cidade (ex: São Paulo, RS)" />
+            <input type="text" id="cityInput" placeholder="Buscar cidade (ex: São Paulo, RS)" autocomplete="off" />
             <button onclick="searchCity()">&#128269; Buscar</button>
             <span class="search-loading" id="searchLoading">Buscando...</span>
         </div>
-        <a href="#" class="report-link" id="reportLink" onclick="openReport()">&#128196; Relatório Agrícola</a>
-        <div class="status-badge" id="statusBadge">&#9679; Aguardando localização</div>
+        <a href="javascript:void(0)" class="report-link" id="reportLink" onclick="openReport(event)">&#128196; Relatório Agrícola</a>
+        <div class="status-badge" id="statusBadge">&#9679; Aguardando</div>
     </header>
 
     <!-- Geolocation popup -->
@@ -382,9 +392,10 @@
         <div class="spinner"></div>
         <p>Detectando sua localização...</p>
         <div class="hint">Permita o acesso à localização quando solicitado</div>
-        <button onclick="skipGeolocation()">Usar localização padrão (Santo &Acirc;ngelo)</button>
+        <button onclick="skipGeolocation()">Usar localização padrão (Santo Ângelo)</button>
     </div>
 
+    <!-- Main layout -->
     <div class="main-layout">
         <!-- Map Panel -->
         <div class="map-panel">
@@ -396,77 +407,107 @@
 
         <!-- Data Panel -->
         <div class="dashboard" id="dashboard">
+            <!-- Alert Banner (hidden by default, shown on error or weather alerts) -->
             <div class="alert-banner" id="alertBanner">
                 <div class="alert-title"></div>
                 <div class="alert-text"></div>
                 <div class="alert-tags"></div>
             </div>
-            <div class="location-header">
-                <div>
-                    <h1 id="locTitle">Carregando...</h1>
-                    <p id="locCoords"></p>
+
+            <!-- Skeleton placeholder (shown while loading) -->
+            <div id="skeletonWrapper">
+                <div class="temp-hero skeleton" style="height: 120px; margin-bottom: 1.2rem;"></div>
+                <div class="metrics">
+                    <div class="metric-card skeleton" style="height: 80px;"></div>
+                    <div class="metric-card skeleton" style="height: 80px;"></div>
+                    <div class="metric-card skeleton" style="height: 80px;"></div>
+                    <div class="metric-card skeleton" style="height: 80px;"></div>
+                    <div class="metric-card skeleton" style="height: 80px;"></div>
+                    <div class="metric-card skeleton" style="height: 80px;"></div>
                 </div>
-                <button class="update-btn" onclick="refreshData()">&#8635; Atualizar</button>
+                <div class="charts">
+                    <div class="chart-card skeleton" style="height: 250px;"></div>
+                    <div class="chart-card skeleton" style="height: 250px;"></div>
+                </div>
+                <div class="forecast-card skeleton" style="height: 180px;"></div>
             </div>
 
-            <!-- Temp Hero -->
-            <div class="temp-hero">
-                <div class="temp-value" id="tempHero"><span>--</span><sup>°C</sup></div>
-                <div class="temp-desc" id="tempDesc">--</div>
-            </div>
+            <!-- Real content (hidden while loading) -->
+            <div id="contentWrapper" style="display: none;">
+                <div class="location-header">
+                    <div>
+                        <h1 id="locTitle">Carregando...</h1>
+                        <p id="locCoords"></p>
+                    </div>
+                    <button class="update-btn" onclick="refreshData()">&#8635; Atualizar</button>
+                </div>
 
-            <!-- Metrics -->
-            <div class="metrics">
-                <div class="metric-card">
-                    <div class="metric-label">Temperatura</div>
-                    <div class="metric-value" id="mTemp">--<span class="metric-unit"> °C</span></div>
+                <!-- Temp Hero -->
+                <div class="temp-hero">
+                    <div class="temp-value" id="tempHero"><span>--</span><sup>°C</sup></div>
+                    <div class="temp-desc" id="tempDesc">--</div>
                 </div>
-                <div class="metric-card">
-                    <div class="metric-label">Umidade</div>
-                    <div class="metric-value" id="mUmidade">--<span class="metric-unit"> %</span></div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">Vento</div>
-                    <div class="metric-value" id="mVento">--<span class="metric-unit"> km/h</span></div>
-                    <div class="metric-sub" id="mWindDir"></div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">Pressão</div>
-                    <div class="metric-value" id="mPressao">--<span class="metric-unit"> hPa</span></div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">Nuvens</div>
-                    <div class="metric-value" id="mNuvens">--<span class="metric-unit"> %</span></div>
-                    <div class="metric-sub" id="mNuvensDesc"></div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">Chuva</div>
-                    <div class="metric-value" id="mChuva">--<span class="metric-unit"> mm</span></div>
-                    <div class="metric-sub" id="mChuvaDesc"></div>
-                </div>
-            </div>
 
-            <!-- Charts -->
-            <div class="charts">
-                <div class="chart-card">
-                    <h3>&#127777; Temperatura &mdash; pr&oacute;ximos 5 dias</h3>
-                    <canvas id="tempChart"></canvas>
+                <!-- Metrics -->
+                <div class="metrics">
+                    <div class="metric-card">
+                        <div class="metric-label">Temperatura</div>
+                        <div class="metric-value" id="mTemp">--<span class="metric-unit"> °C</span></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Umidade</div>
+                        <div class="metric-value" id="mUmidade">--<span class="metric-unit"> %</span></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Vento</div>
+                        <div class="metric-value" id="mVento">--<span class="metric-unit"> km/h</span></div>
+                        <div class="metric-sub" id="mWindDir"></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Pressão</div>
+                        <div class="metric-value" id="mPressao">--<span class="metric-unit"> hPa</span></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Nuvens</div>
+                        <div class="metric-value" id="mNuvens">--<span class="metric-unit"> %</span></div>
+                        <div class="metric-sub" id="mNuvensDesc"></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Chuva</div>
+                        <div class="metric-value" id="mChuva">--<span class="metric-unit"> mm</span></div>
+                        <div class="metric-sub" id="mChuvaDesc"></div>
+                    </div>
                 </div>
-                <div class="chart-card">
-                    <h3>&#127782; Precipitação &mdash; pr&oacute;ximos 5 dias</h3>
-                    <canvas id="rainChart"></canvas>
-                </div>
-            </div>
 
-            <!-- Forecast Table -->
-            <div class="forecast-card">
-                <h3>&#128197; Previsão Detalhada</h3>
-                <table>
-                    <thead>
-                        <tr><th>Data</th><th>Mín.</th><th>Máx.</th><th>Chuva</th><th>Vento</th></tr>
-                    </thead>
-                    <tbody id="forecastBody"></tbody>
-                </table>
+                <!-- Charts -->
+                <div class="charts">
+                    <div class="chart-card">
+                        <h3>&#127777; Temperatura — próximos 5 dias</h3>
+                        <canvas id="tempChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>&#127782; Precipitação — próximos 5 dias</h3>
+                        <canvas id="rainChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Forecast Table -->
+                <div class="forecast-card">
+                    <h3>&#128197; Previsão Detalhada</h3>
+                    <table>
+                        <caption style="display:none;">Previsão para os próximos 5 dias</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Data</th>
+                                <th scope="col">Mín.</th>
+                                <th scope="col">Máx.</th>
+                                <th scope="col">Chuva</th>
+                                <th scope="col">Vento</th>
+                            </tr>
+                        </thead>
+                        <tbody id="forecastBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -477,6 +518,15 @@
 
     <script>
     // ============================================================
+    //  Utilities
+    // ============================================================
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // ============================================================
     //  State
     // ============================================================
     let currentLat = null;
@@ -486,7 +536,50 @@
     let clickMarker = null;
     let tempChartInstance = null;
     let rainChartInstance = null;
+    let isLoading = false;                // Prevents concurrent requests
     const badge = document.getElementById('statusBadge');
+    const mapHint = document.getElementById('mapHint');
+    const skeletonWrapper = document.getElementById('skeletonWrapper');
+    const contentWrapper = document.getElementById('contentWrapper');
+    const reportLink = document.getElementById('reportLink');
+
+    // ============================================================
+    //  Error / Alert banner
+    // ============================================================
+    const alertBanner = document.getElementById('alertBanner');
+    function showError(message) {
+        alertBanner.classList.add('show', 'error');
+        alertBanner.classList.remove('warn');
+        alertBanner.querySelector('.alert-title').innerHTML = '&#9888; Erro de conexão';
+        alertBanner.querySelector('.alert-text').textContent = message;
+        alertBanner.querySelector('.alert-tags').innerHTML = '';
+        badge.innerHTML = '&#8226; Erro na consulta';
+        badge.className = 'status-badge error';
+    }
+    function hideBanner() {
+        alertBanner.classList.remove('show', 'error', 'warn');
+    }
+
+    // ============================================================
+    //  Local Storage (last known position)
+    // ============================================================
+    const LS_KEY = 'dataClima_lastPos';
+    function saveLastPosition(lat, lon, city) {
+        try {
+            localStorage.setItem(LS_KEY, JSON.stringify({ lat, lon, city, ts: Date.now() }));
+        } catch(e) {}
+    }
+    function loadLastPosition() {
+        try {
+            const raw = localStorage.getItem(LS_KEY);
+            if (raw) {
+                const data = JSON.parse(raw);
+                // Only use if less than 1 hour old
+                if (Date.now() - data.ts < 3600000) return data;
+            }
+        } catch(e) {}
+        return null;
+    }
 
     // ============================================================
     //  Map init
@@ -506,7 +599,7 @@
         }
     ).addTo(map);
 
-    // Custom pulsing icon
+    // Custom pulsing icon (user location)
     function userIcon() {
         return L.divIcon({
             className: '',
@@ -520,6 +613,7 @@
         });
     }
 
+    // Gold marker (clicked/searched)
     function goldIcon() {
         return L.divIcon({
             className: '',
@@ -530,14 +624,14 @@
         });
     }
 
-    // Click handler
+    // Map click handler (with debounce via isLoading flag)
     map.on('click', function(e) {
+        if (isLoading) return;          // ignore clicks while loading
         const { lat, lng } = e.latlng;
 
         // Remove old click marker
         if (clickMarker) map.removeLayer(clickMarker);
 
-        // Add click marker
         clickMarker = L.marker([lat, lng], { icon: goldIcon() })
             .addTo(map)
             .bindPopup(`
@@ -545,11 +639,11 @@
                     <strong style="color:#D4AF37;">Buscando dados...</strong><br>
                     <span style="color:#888;">${lat.toFixed(4)}, ${lng.toFixed(4)}</span>
                 </div>
-            `);
+            `)
+            .openPopup();
 
         currentLat = lat;
         currentLon = lng;
-
         fetchWeather(lat, lng);
     });
 
@@ -562,34 +656,48 @@
     }
 
     function setDefaultLocation() {
-        currentLat = -28.30;
-        currentLon = -54.248;
-        map.setView([-28.30, -54.248], 10);
-        fetchWeather(currentLat, currentLon);
+        const saved = loadLastPosition();
+        if (saved) {
+            currentLat = saved.lat;
+            currentLon = saved.lon;
+            currentCityName = saved.city;
+            map.setView([currentLat, currentLon], 10);
+            fetchWeather(currentLat, currentLon);
+        } else {
+            currentLat = -28.30;
+            currentLon = -54.248;
+            map.setView([currentLat, currentLon], 10);
+            fetchWeather(currentLat, currentLon);
+        }
+    }
+
+    // Geolocation success
+    function onGeolocationSuccess(pos) {
+        document.getElementById('geoPopup').style.display = 'none';
+        currentLat = pos.coords.latitude;
+        currentLon = pos.coords.longitude;
+
+        userMarker = L.marker([currentLat, currentLon], { icon: userIcon() })
+            .addTo(map)
+            .bindPopup(`<div style="font-family:Inter,sans-serif;font-size:13px;"><strong style="color:#22C55E;">Sua localização</strong><br><span style="color:#888;">${
+                escapeHtml(currentLat.toFixed(4))}, ${escapeHtml(currentLon.toFixed(4))}</span></div>`)
+            .openPopup();
+
+        map.setView([currentLat, currentLon], 12);
+        fetchWeather(currentLat, currentLon);  // Already triggers reverse geocode inside
+    }
+
+    // Geolocation error
+    function onGeolocationError(err) {
+        console.warn('Geolocalização negada:', err.message);
+        document.getElementById('geoPopup').style.display = 'none';
+        setDefaultLocation();
     }
 
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                document.getElementById('geoPopup').style.display = 'none';
-                currentLat = pos.coords.latitude;
-                currentLon = pos.coords.longitude;
-
-                userMarker = L.marker([currentLat, currentLon], { icon: userIcon() })
-                    .addTo(map)
-                    .bindPopup('<div style="font-family:Inter,sans-serif;font-size:13px;"><strong style="color:#22C55E;">Sua localização</strong><br><span style="color:#888;">' +
-                        currentLat.toFixed(4) + ', ' + currentLon.toFixed(4) + '</span></div>')
-                    .openPopup();
-
-                map.setView([currentLat, currentLon], 12);
-                reverseGeocode(currentLat, currentLon);
-                fetchWeather(currentLat, currentLon);
-            },
-            (err) => {
-                console.warn('Geolocalização negada:', err.message);
-                document.getElementById('geoPopup').style.display = 'none';
-                setDefaultLocation();
-            },
+            onGeolocationSuccess,
+            onGeolocationError,
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
         );
     } else {
@@ -624,8 +732,13 @@
     //  Weather Fetch
     // ============================================================
     async function fetchWeather(lat, lon) {
-        badge.innerHTML = '&#9679; Carregando...';
+        if (isLoading) return;           // safety
+        isLoading = true;
+        badge.innerHTML = '&#9679; Atualizando...';
         badge.className = 'status-badge';
+        skeletonWrapper.style.display = 'block';
+        contentWrapper.style.display = 'none';
+        hideBanner();
 
         try {
             const url = new URL('https://api.open-meteo.com/v1/forecast');
@@ -650,37 +763,47 @@
             if (!res.ok) throw new Error(`API retornou ${res.status}`);
             const data = await res.json();
 
-            // Try reverse geocode
+            // Reverse geocode
             const name = await reverseGeocode(lat, lon);
 
-            // Fetch INMET data in parallel for validation
+            // INMET validation
             let inmetData = null, stationInfo = null;
-            const estacoes = await fetchInmetStations(lat, lon);
-            if (estacoes && estacoes.length) {
-                const auto = estacoes.filter(e => e.tipoEstacao === "AUTOMÁTICA");
-                const est = auto[0] || estacoes[0];
-                stationInfo = est;
-                inmetData = await fetchInmetHourly(est.cd_estacao);
+            try {
+                const estacoes = await fetchInmetStations(lat, lon);
+                if (estacoes && estacoes.length) {
+                    const auto = estacoes.filter(e => e.tipoEstacao === "AUTOMÁTICA");
+                    const est = auto[0] || estacoes[0];
+                    stationInfo = est;
+                    inmetData = await fetchInmetHourly(est.cd_estacao);
+                }
+            } catch (inmetErr) {
+                console.warn('INMET indisponível:', inmetErr);
             }
 
             renderDashboard(data, lat, lon, name, inmetData, stationInfo);
 
             badge.innerHTML = '&#9679; Online';
             badge.className = 'status-badge online';
+            mapHint.classList.add('hidden');
 
-            // Hide hint
-            document.getElementById('mapHint').classList.add('hidden');
+            // Save last position
+            saveLastPosition(lat, lon, name);
 
         } catch (err) {
-            badge.innerHTML = '&#8226; Erro na consulta';
-            badge.className = 'status-badge error';
+            showError(err.message);
             console.error('Weather error:', err);
-            alert('Erro ao consultar dados climáticos:\n' + err.message);
+            // Keep skeleton hidden, show content with error state
+            skeletonWrapper.style.display = 'none';
+            contentWrapper.style.display = 'block';
+            document.getElementById('locTitle').innerHTML = 'Erro ao carregar dados';
+            document.getElementById('locCoords').textContent = '';
+        } finally {
+            isLoading = false;
         }
     }
 
     async function refreshData() {
-        if (currentLat && currentLon) fetchWeather(currentLat, currentLon);
+        if (currentLat && currentLon && !isLoading) fetchWeather(currentLat, currentLon);
     }
 
     // ============================================================
@@ -688,10 +811,13 @@
     // ============================================================
     async function searchCity() {
         const input = document.getElementById('cityInput').value.trim();
-        if (!input) return;
+        if (!input || isLoading) return;
 
-        const loading = document.getElementById('searchLoading');
-        loading.style.display = 'inline';
+        const loadingEl = document.getElementById('searchLoading');
+        loadingEl.style.display = 'inline';
+        isLoading = true;
+        badge.innerHTML = '&#9679; Buscando...';
+        badge.className = 'status-badge';
 
         try {
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input + ', Brazil')}&limit=1&accept-language=pt-BR`;
@@ -700,7 +826,10 @@
 
             if (!results.length) {
                 alert('Cidade não encontrada. Tente outro nome.');
-                loading.style.display = 'none';
+                loadingEl.style.display = 'none';
+                isLoading = false;
+                badge.innerHTML = '&#9679; Aguardando';
+                badge.className = 'status-badge';
                 return;
             }
 
@@ -708,36 +837,34 @@
             const lat = parseFloat(place.lat);
             const lon = parseFloat(place.lon);
 
-            // Move map
             map.setView([lat, lon], 10);
-
-            // Remove old click marker
             if (clickMarker) map.removeLayer(clickMarker);
-
-            // Add gold marker for searched city
             clickMarker = L.marker([lat, lon], { icon: goldIcon() })
                 .addTo(map)
                 .bindPopup(`
                     <div style="font-family:Inter,sans-serif;text-align:center;font-size:13px;">
-                        <strong style="color:#D4AF37;">${place.display_name.split(',')[0]}</strong><br>
+                        <strong style="color:#D4AF37;">${escapeHtml(place.display_name.split(',')[0])}</strong><br>
                         <span style="color:#888;">${lat.toFixed(4)}, ${lon.toFixed(4)}</span>
                     </div>
                 `)
                 .openPopup();
 
-            // Fetch weather for searched location
             currentLat = lat;
             currentLon = lon;
-            fetchWeather(lat, lon);
+            await fetchWeather(lat, lon);
 
         } catch (err) {
             alert('Erro ao buscar cidade: ' + err.message);
+            badge.innerHTML = '&#8226; Erro';
+            badge.className = 'status-badge error';
+        } finally {
+            loadingEl.style.display = 'none';
+            isLoading = false;
         }
-
-        loading.style.display = 'none';
     }
 
-    function openReport() {
+    function openReport(e) {
+        e?.preventDefault();
         if (currentLat && currentLon) {
             const city = currentCityName || `${currentLat.toFixed(2)}, ${currentLon.toFixed(2)}`;
             window.location.href = `relatorio.html?lat=${currentLat}&lon=${currentLon}&city=${encodeURIComponent(city)}`;
@@ -756,7 +883,7 @@
     // ============================================================
     let geoNameCache = {};
     async function reverseGeocode(lat, lon) {
-        const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
+        const key = `${lat.toFixed(3)},${lon.toFixed(3)}`; // better precision
         if (geoNameCache[key]) return geoNameCache[key];
 
         try {
@@ -771,24 +898,24 @@
             geoNameCache[key] = name;
             return name;
         } catch {
-            return `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`;
+            return `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
         }
     }
 
     // ============================================================
-    //  Critical Alerts
+    //  Critical Alerts (unchanged logic, but now shown/hidden)
     // ============================================================
     function renderAlerts(c, d, inmet) {
-        const banner = document.getElementById('alertBanner');
+        const banner = alertBanner; // already fetched globally
         const titleEl = banner.querySelector('.alert-title');
         const textEl = banner.querySelector('.alert-text');
         const tagsEl = banner.querySelector('.alert-tags');
         tagsEl.innerHTML = '';
+        banner.classList.remove('show', 'error', 'warn');
 
         const alerts = [];
         const bad = [];
 
-        // Temperature extremes
         if (c.temperature_2m >= 38) {
             bad.push(`Temperatura crítica: ${c.temperature_2m}°C — risco de estresse térmico em culturas`);
         } else if (c.temperature_2m >= 35) {
@@ -800,7 +927,6 @@
             alerts.push(`Temperatura próxima a 0°C — monitorar risco de geada`);
         }
 
-        // Humidity
         const umid = c.relative_humidity_2m;
         if (umid <= 15) {
             bad.push(`Umidade muito baixa (${umid}%) — irrigação de urgência necessária`);
@@ -808,35 +934,23 @@
             alerts.push(`Umidade baixa (${umid}%) — verificar estresse hídrico`);
         }
 
-        // Wind
         if (c.wind_speed_10m >= 60) {
             bad.push(`Vento perigoso (${c.wind_speed_10m} km/h) — risco de danos estruturais`);
         } else if (c.wind_speed_10m >= 45) {
             alerts.push(`Vento forte (${c.wind_speed_10m} km/h) — atenção a culturas altas`);
         }
 
-        // Dry spell (from daily forecast)
         if (d.precipitation_sum) {
             const dryDays = d.precipitation_sum.slice(0, 4).filter(v => v === 0).length;
             if (dryDays >= 4) {
                 bad.push(`${dryDays} dias sem chuva prevista — déficit hídrico iminente`);
             }
-        }
-
-        // Heavy rain forecast
-        if (d.precipitation_sum) {
             const maxRain = Math.max(...d.precipitation_sum);
             if (maxRain > 40) {
                 alerts.push(`Chuvas fortes previstas (até ${maxRain} mm) — adiar pulverizações`);
-                banner.classList.add('warn');
-            } else {
-                banner.classList.remove('warn');
             }
-        } else {
-            banner.classList.remove('warn');
         }
 
-        // INMET validation
         if (inmet) {
             const omTemp = c.temperature_2m;
             const inmetTempRaw = inmet.tem_bulu_sec;
@@ -844,33 +958,29 @@
                 const diff = Math.abs(omTemp - inmetTempRaw);
                 if (diff > 3) {
                     alerts.push(`Diferença INMET/Open-Meteo: ${diff.toFixed(1)}°C — verificar consistência`);
-                    tagsEl.innerHTML += `<span class="alert-tag">INMET: ${inmetTempRaw}°C</span>`;
+                    tagsEl.innerHTML += `<span class="alert-tag">INMET: ${escapeHtml(inmetTempRaw)}°C</span>`;
                 }
                 tagsEl.innerHTML += `<span class="alert-tag" style="background:rgba(34,197,94,.1);color:#22C55E;border-color:rgba(34,197,94,.2)">✓ Validado INMET</span>`;
             }
             const inmetChuva = inmet.chuva;
             if (inmetChuva !== null && inmetChuva !== undefined) {
-                tagsEl.innerHTML += `<span class="alert-tag" style="background:rgba(76,120,239,.1);color:#60A5FA;border-color:rgba(76,120,239,.2)">Chuva INMET: ${inmetChuva} mm</span>`;
+                tagsEl.innerHTML += `<span class="alert-tag" style="background:rgba(76,120,239,.1);color:#60A5FA;border-color:rgba(76,120,239,.2)">Chuva INMET: ${escapeHtml(inmetChuva)} mm</span>`;
             }
         }
 
         if (bad.length > 0) {
-            banner.classList.add('show');
-            banner.classList.remove('warn');
+            banner.classList.add('show', 'warn'); // critical still warn style? We could use 'error' but here we keep original logic (warn/alert)
             titleEl.innerHTML = '&#9888; Alerta Crítico';
             titleEl.style.color = '#EF4444';
-            textEl.innerHTML = bad.join('<br>');
+            textEl.innerHTML = bad.map(escapeHtml).join('<br>');
         } else if (alerts.length > 0) {
-            banner.classList.add('show');
-            banner.classList.add('warn');
-            titleEl.style.color = '#ffc800';
+            banner.classList.add('show', 'warn');
             titleEl.innerHTML = '&#9888; Atenção';
-            textEl.innerHTML = alerts.join('<br>');
+            titleEl.style.color = '#ffc800';
+            textEl.innerHTML = alerts.map(escapeHtml).join('<br>');
             if (bad.length > 0) {
-                textEl.innerHTML = bad.join('<br>') + '<br><br>' + alerts.join('<br>');
+                textEl.innerHTML = bad.map(escapeHtml).join('<br>') + '<br><br>' + alerts.map(escapeHtml).join('<br>');
             }
-        } else {
-            banner.classList.remove('show');
         }
     }
 
@@ -878,33 +988,30 @@
     //  Render
     // ============================================================
     function renderDashboard(data, lat, lon, name, inmet, station) {
-        const dashboard = document.getElementById('dashboard');
-        dashboard.classList.add('show');
+        // Hide skeleton, show real content
+        skeletonWrapper.style.display = 'none';
+        contentWrapper.style.display = 'block';
 
         const c = data.current;
         const d = data.daily;
 
         // Header
-        document.getElementById('locTitle').innerHTML = name.split(',').map((p, i) =>
-            i === 0 ? `<span>${p.trim()}</span>` : p.trim()
-        ).join(', ');
+        const parts = name.split(',').map(p => p.trim());
+        document.getElementById('locTitle').innerHTML =
+            (parts[0] ? `<span>${escapeHtml(parts[0])}</span>` : '') +
+            (parts[1] ? ', ' + escapeHtml(parts[1]) : '');
         document.getElementById('locCoords').textContent =
             `Lat ${lat.toFixed(4)}° · Lon ${lon.toFixed(4)}° · Atualizado às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
 
-        // Save city name for report link
         currentCityName = name.trim();
-        document.getElementById('reportLink').href =
-            `relatorio.html?lat=${lat}&lon=${lon}&city=${encodeURIComponent(currentCityName)}`;
+        reportLink.href = `relatorio.html?lat=${lat}&lon=${lon}&city=${encodeURIComponent(currentCityName)}`;
 
-        // ============================================================
-        //  Check critical conditions and show alert banner
-        // ============================================================
         renderAlerts(c, d, inmet);
 
         // Hero
         document.getElementById('tempHero').innerHTML = `<span>${Math.round(c.temperature_2m)}</span><sup>°C</sup>`;
         document.getElementById('tempDesc').textContent =
-            `Sens. térmica ${Math.round(c.apparent_temperature)}°C · Umidade ${c.relative_humidity_2m}%`
+            `Sens. térmica ${Math.round(c.apparent_temperature)}°C · Umidade ${c.relative_humidity_2m}%`;
 
         // Metrics
         document.getElementById('mTemp').innerHTML = `${Math.round(c.temperature_2m)}<span class="metric-unit"> °C</span>`;
@@ -914,17 +1021,14 @@
         document.getElementById('mNuvens').innerHTML = `${c.cloud_cover}<span class="metric-unit"> %</span>`;
         document.getElementById('mChuva').innerHTML = `${c.precipitation}<span class="metric-unit"> mm</span>`;
 
-        // Wind direction
         const dirs = ['N', 'NE', 'L', 'SE', 'S', 'SO', 'O', 'NO'];
         const idx = Math.round(c.wind_direction_10m / 45) % 8;
         document.getElementById('mWindDir').textContent = `Dir: ${dirs[idx]} (${c.wind_direction_10m}°)`;
 
-        // Cloud desc
         const cc = c.cloud_cover;
-        document.getElementById('mNuvensDesc').textContent =
-            cc < 20 ? 'C&eacute;u limpo' : cc < 60 ? 'Parc. nublado' : cc < 80 ? 'Nublado' : 'Encoberto';
+        document.getElementById('mNuvensDesc').innerHTML =
+            cc < 20 ? 'Céu limpo' : cc < 60 ? 'Parc. nublado' : cc < 80 ? 'Nublado' : 'Encoberto';
 
-        // Rain desc
         const rain = c.precipitation;
         document.getElementById('mChuvaDesc').textContent =
             rain === 0 ? 'Sem precip.' : rain < 2.5 ? 'Garoa leve' : rain < 10 ? 'Moderada' : 'Forte';
@@ -932,9 +1036,9 @@
         renderCharts(data.hourly);
         renderTable(d);
 
-        // Scroll dashboard into view on mobile
+        // Scroll on mobile
         if (window.innerWidth < 900) {
-            dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
 
@@ -959,52 +1063,72 @@
             }
         };
 
-        if (tempChartInstance) tempChartInstance.destroy();
-        tempChartInstance = new Chart(document.getElementById('tempChart'), {
-            type: 'line',
-            data: {
-                labels,
-                datasets: [{
-                    data: temps,
-                    borderColor: '#D4AF37',
-                    backgroundColor: 'rgba(212,175,55,0.08)',
-                    fill: true,
-                    tension: 0.4,
-                    borderWidth: 1.5,
-                    pointRadius: 0,
-                    pointHitRadius: 10,
-                }]
-            },
-            options: {
-                ...chartDefaults,
-                scales: {
-                    ...chartDefaults.scales,
-                    y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v + '°' } }
-                }
+        // Safely destroy previous charts
+        try {
+            if (tempChartInstance) {
+                tempChartInstance.destroy();
+                tempChartInstance = null;
             }
-        });
+        } catch(e) {}
+        try {
+            if (rainChartInstance) {
+                rainChartInstance.destroy();
+                rainChartInstance = null;
+            }
+        } catch(e) {}
 
-        if (rainChartInstance) rainChartInstance.destroy();
-        rainChartInstance = new Chart(document.getElementById('rainChart'), {
-            type: 'bar',
-            data: {
-                labels,
-                datasets: [{
-                    data: rains,
-                    backgroundColor: rains.map(v => v > 0 ? 'rgba(212,175,55,0.6)' : 'rgba(212,175,55,0.1)'),
-                    borderColor: '#D4AF37',
-                    borderWidth: 0.5,
-                    borderRadius: 2,
-                }]
-            },
-            options: {
-                ...chartDefaults,
-                scales: {
-                    ...chartDefaults.scales,
-                    y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v + 'mm' } }
+        try {
+            tempChartInstance = new Chart(document.getElementById('tempChart'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: temps,
+                        borderColor: '#D4AF37',
+                        backgroundColor: 'rgba(212,175,55,0.08)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        pointHitRadius: 10,
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    scales: {
+                        ...chartDefaults.scales,
+                        y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v + '°' } }
+                    }
                 }
-            }
-        });
+            });
+        } catch(e) {
+            console.error('Falha ao criar gráfico de temperatura', e);
+        }
+
+        try {
+            rainChartInstance = new Chart(document.getElementById('rainChart'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: rains,
+                        backgroundColor: rains.map(v => v > 0 ? 'rgba(212,175,55,0.6)' : 'rgba(212,175,55,0.1)'),
+                        borderColor: '#D4AF37',
+                        borderWidth: 0.5,
+                        borderRadius: 2,
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    scales: {
+                        ...chartDefaults.scales,
+                        y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v + 'mm' } }
+                    }
+                }
+            });
+        } catch(e) {
+            console.error('Falha ao criar gráfico de chuva', e);
+        }
     }
 
     function renderTable(d) {
@@ -1017,13 +1141,15 @@
             const dia = dt.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
             const barW = (d.precipitation_sum[i] / maxRain) * 100;
 
-            body.innerHTML += `<tr>
-                <td>${dia}</td>
-                <td>${d.temperature_2m_min[i]}°</td>
-                <td>${d.temperature_2m_max[i]}°</td>
-                <td>${d.precipitation_sum[i]} mm<span class="rain-bar" style="width:${barW}px"></span></td>
-                <td>${Math.round(d.wind_speed_10m_max[i])} km/h</td>
-            </tr>`;
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${escapeHtml(dia)}</td>
+                <td>${escapeHtml(d.temperature_2m_min[i])}°</td>
+                <td>${escapeHtml(d.temperature_2m_max[i])}°</td>
+                <td>${escapeHtml(d.precipitation_sum[i])} mm<span class="rain-bar" style="width:${barW}px"></span></td>
+                <td>${escapeHtml(Math.round(d.wind_speed_10m_max[i]))} km/h</td>
+            `;
+            body.appendChild(row);
         }
     }
     </script>
